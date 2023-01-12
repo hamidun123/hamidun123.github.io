@@ -1,6 +1,227 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>ASR文献</title>
+    <url>/2022/09/10/ASR%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理ASR相关文献</p>
+<span id="more"></span>
+<h2 id="asr">ASR</h2>
+<h3
+id="a-re-thinking-asr-modeling-framework-using-attention-mechanisms">1.《A
+Re-thinking ASR Modeling Framework using Attention Mechanisms》</h3>
+<p>Chih-Ying Yang and Kuan-Yu Chen</p>
+<p>作者使用注意力机制来改进 <strong>ASR</strong></p>
+<p>作者提出的模型名为 <strong>re-thinking
+ASR</strong>（<strong>rt-ASR</strong>）</p>
+<figure>
+<img src="img\image-20220217095143475.png"
+alt="image-20220217095143475" />
+<figcaption aria-hidden="true">image-20220217095143475</figcaption>
+</figure>
+<p>作者的模型之所以叫 <strong>re-thinking ASR</strong>
+是因为它对假设的语言规律进行了计算，作者是希望通过重新思考假设的语言规律以及文本和声学特征来产生更准确的识别结果</p>
+<p>其主要包括 <strong>Encoder</strong> 和 <strong>Decoder</strong>
+两部分，其中 <strong>Decoder</strong> 部分使用的是 <strong>modified
+Transformer</strong>，其具有 <strong>mixed attention</strong> 和
+<strong>self-and-mixed attention</strong></p>
+<p>假设语音序列为 <span
+class="math inline">\(X=\{x_1,\dots,x_T\}\)</span> 对应的文本序列为
+<span class="math inline">\(Y=\{y_1,\dots,y_L\}\)</span></p>
+<p>在 <strong>特征提取</strong> 部分作者使用两层 <strong>CNN</strong>
+来获取语音特征，并设置步长为2，从而使得特征数减少到 <span
+class="math inline">\(\frac{1}{4}T\)</span> ,接下来引入位置编码，并通过
+<strong>N</strong> 层 <strong>Transformer</strong> 得到语音的编码特征
+<span
+class="math inline">\(H^\alpha=\{h^{\alpha}_1,\dots,h^{\alpha}_{T/4}\}\)</span></p>
+<p>在解码器部分作者想的是尽可能利用多模态信息，其输入是 <span
+class="math inline">\(\{Y^f,Y^s_{1:(m-1)}\}\)</span>，其中 <span
+class="math inline">\(Y^f=\{y^f_1,\dots,y^f_{L&#39;}\}\)</span>，是由
+<strong>ASR 假设（First Pass ASR）</strong> 得到的预测解码序列，而 <span
+class="math inline">\(Y^s_{1:(m-1)}=\{y^s_1,\dots,y^s_{m-1}\}\)</span>则是
+<strong>rt-ASR</strong>
+模型的输出，两个部分分别加上位置编码和段落编码，送入
+<strong>Decoder</strong></p>
+<p>在 <strong>mixed attention</strong> 部分 <span
+class="math display">\[
+Q_{mixed}=Y^s_{1:(m-1)}W^Q_{mixed}
+\\K_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^K_{mixed}
+\\V_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^V_{mixed}
+\\
+\overline{Y}^s_{1:(m-1)}=softmax(\frac{Q_{mixed}(K_{mixed})^T}{\sqrt{d}})V_{mixed}
+\]</span> 这里生成的 <span
+class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span>
+还拥有了未来的信息（由于 <strong>First Pass ASR</strong>）</p>
+<p>接下来利用 <strong>self-and-mixed attention</strong>
+来混合文本和声音信息，这一步除了利用 <span
+class="math inline">\(H^\alpha\)</span> 和 <span
+class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span> 得到 <span
+class="math inline">\(\overline{\overline{Y}}^s_{1:(m-1)}\)</span>
+以外，还计算了 <span class="math inline">\(H^\alpha\)</span>
+的自我注意力 <span
+class="math inline">\(\overline{H}^\alpha\)</span></p>
+<p>作者实验了两种 <strong>First Pass ASR</strong> 模型，发现都有
+<strong>3%</strong> 左右的提高</p>
+<figure>
+<img
+src="C:\Users\QYK\AppData\Roaming\Typora\typora-user-images\image-20220217110237148.png"
+alt="image-20220217110237148" />
+<figcaption aria-hidden="true">image-20220217110237148</figcaption>
+</figure>
+<h3
+id="specaugment-a-simple-data-augmentation-method-for-automatic-speech-recognition">2.《SpecAugment:
+A Simple Data Augmentation Method for Automatic Speech
+Recognition》</h3>
+<p>Daniel S. Park, William Chan, Yu Zhang, Chung-Cheng Chiu, Barret
+Zoph, Ekin D. Cubuk, Quoc V. Le</p>
+<p>作者提出了一种简单的用于 <strong>ASR</strong> 的数据增强的方法
+<strong>SpecAugment</strong></p>
+<p>作者提出的直接作用于 <strong>mel</strong> 频谱</p>
+<p>主要有三种方法，<strong>Time warping、Frequency masking、Time
+masking</strong></p>
+<p><strong>Time warping</strong>
+是指将图像除边界点外部分进行折叠，产生的效果类似水平平移</p>
+<p><strong>Frequency masking</strong> 则是在屏蔽某一特定宽度的频率值</p>
+<p><strong>Time masking</strong> 是屏蔽某一特定宽度的时间值</p>
+<figure>
+<img src="img\image-20220222102925728.png"
+alt="image-20220222102925728" />
+<figcaption aria-hidden="true">image-20220222102925728</figcaption>
+</figure>
+<h2 id="asr非自回归模型">ASR非自回归模型</h2>
+<p>目前的大部分序列到序列模型都是自回归模型，即利用上一解码步骤的结果来预测当前时间步的结果，但这样的自回归性质会导致在inference时出现很大的延迟，而非自回归模型则可以摆脱这种依赖，提高推理速度</p>
+<h3
+id="spike-triggered-non-autoregressive-transformer-for-end-to-end-speech-recognition">1.《Spike-Triggered
+Non-Autoregressive Transformer for End-to-End Speech Recognition》</h3>
+<p>中科院自动化所的文章 Zhengkun Tian, Jiangyan Yi, Jianhua Tao, Ye Bai,
+Shuai Zhang, Zhengqi Wen</p>
+<p>文章提出了讲非自回归网络应用到语音识别上</p>
+<p>具体使用的是 <strong>Non-Autoregressive
+Transformer（NAT）</strong>。一般的 <strong>NAT</strong>
+会采用固定的长度的掩码序列来作为输入，从而预测目标序列。因此该固定长度对模型性能有很大的影响，目前主要的方法有
+1. 引入神经网络来预测目标长度，但该方法需要对不同长度像本进行采样。2.
+设定固定长度，由于为了确保模型性能，长度往往会比目标序列长很多。3. 利用
+<strong>CTC</strong>
+损失代替交叉熵损失函数，但在inference时会生成重复标记和空白并不会提高infernece速度</p>
+<p>因此作者提出了 <strong>Spike-Triggered Non-Autoregressive
+Transformer（ST-NAT）</strong></p>
+<figure>
+<img src="img/image-20211119160633080.png"
+alt="image-20211119160633080" />
+<figcaption aria-hidden="true">image-20211119160633080</figcaption>
+</figure>
+<p>其主要由编码器，解码器，CTC组成，其中的编码器和解码器和Transformer类似</p>
+<p>首先对输入的语音序列进行卷积和添加位置信息，之后送入到编码器</p>
+<p>文章的主要创新点在引入CTC峰值模块对目标序列长度进行预测，将编码器的输出输入到CTC网络中，当CTC输出高过阈值之后记录触发阈值来估计长度</p>
+<p>随后做实验证明了CTC可以准确预测长度，并且也可以正确触发</p>
+<figure>
+<img src="img/image-20211119163056593.png"
+alt="image-20211119163056593" />
+<figcaption aria-hidden="true">image-20211119163056593</figcaption>
+</figure>
+<figure>
+<img src="img/image-20211119162801227.png"
+alt="image-20211119162801227" />
+<figcaption aria-hidden="true">image-20211119162801227</figcaption>
+</figure>
+<h3
+id="non-autoregressive-transformer-for-speech-recognition">2.《Non-Autoregressive
+Transformer for Speech Recognition》</h3>
+<p>Nanxin Chen，Shinji Watanabe，Jesús Villalba，Najim Dehak</p>
+<p>作者提出了两种非自回归模型：A-CMLM，A-FMLM</p>
+<p>目前深层Transformer已经在ASR上得到了很好的应用，但是由于其是自回归模型，在推理阶段会很难并行，消耗大量计算量</p>
+<p>因此作者提出使用非自回归模型，并支持目前在ASR领域的
+<strong>Non-Autoregressive</strong> 普遍依赖于 <strong>CTC</strong>
+，作者的灵感来自于 <strong>CMLM</strong></p>
+<p><img src="img/image-20211122141950209.png" /></p>
+<p>在传统的 <strong>ASR</strong>
+方面解码器根据之前的解码结果生成当前时间步骤的解码 <span
+class="math display">\[
+P(y_l|y_{&lt;l},x)=P_{dec}(y_l|y_{&lt;l},f_l(h))
+\]</span> 在训练阶段，可以通过给予正确的输入以达到并行解码，但在
+<strong>inference</strong> 的时候则需要一步步解码</p>
+<p>目前使用 <strong>Non-Autoregressive</strong> 有两种方法 一种是基于
+<strong>CTC</strong> 的方法，另一种则是多次迭代来完成预测</p>
+<p>作者提出的是 <strong>Audio-Conditional Masked Language Model
+(A-CMLM)</strong> 其思想是从以前结算中得到的部分替代自回归模型中的 <span
+class="math inline">\(y_{&lt;l}\)</span> 在模型中引入了
+<strong>[MASK]</strong> 标签，这里用<span
+class="math inline">\(L_M\)</span>和<span
+class="math inline">\(L_U\)</span>来表示被 <strong>MASK</strong>
+的部分和未被 <strong>MASK</strong> 的部分 <span class="math display">\[
+P(y_{L_M}|y_{L_U},x)=\prod_{l\in l_M}P_{dec}(y_l|y_{L_U},f_l(h))
+\]</span> 其过程如上图第二部分所示，在训练阶段随机 <strong>MASK</strong>
+部分，然后要求模型根据输入去预测这些被 <strong>MASK</strong>
+的部分，这里作者假设了预测被 <strong>MASK</strong>
+的部分之间是互相独立的，因此才可以实现概率上的相乘</p>
+<p>同时作者在 <strong>A-CMLM</strong> 的基础上提出了改进后的
+<strong>Audio-Factorized Masked Language Model (A-FMLM)</strong>
+，由于在 <strong>A-CMLM</strong> 中训练和 <strong>inference</strong>
+步骤之间还是存在一定差距，<strong>inference</strong>
+要求初始输入全部都是被 <strong>MASK</strong> 的，而
+<strong>A-CMLM</strong> 训练中还是需要有部分未被
+<strong>MASK</strong>的存在。为了缓解这种问题，作者提出了
+<strong>A-FMLM</strong></p>
+<p>作者假设输出长度为 <span class="math inline">\(L\)</span>，迭代次数为
+<span class="math inline">\(K\)</span> <span class="math display">\[
+Z_0=\phi
+\\ Z_K=[0,1,\dots,L-1]
+\\ \forall i \ \ Z_i\subset Z_{i+1}
+\]</span> 这样训练和推理过程都可以变为： <span class="math display">\[
+P(y|h)=\prod^{K}_{i=1}\prod_{l\in Z_i\cap
+\overline{Z}_{i-1}}P_{dec}(y_L|y_{Z_{i-1}},f_l(h))
+\]</span> 这样定义以后，自回归模型就变成了 <span
+class="math inline">\(K=L,Z_i=[0,1,\dots,i-1]\)</span> 的一种特例</p>
+<p>在推理过程中，使用了 <strong>easy decoding</strong>
+在第一次预测的时候先预测最可靠的标记，之后根据该结果进行后面的迭代</p>
+<p><img src="img/image-20211122164521127.png" /></p>
+<h3
+id="listen-attentively-and-spell-once-whole-sentence-generation-via-a-non-autoregressive-architecture-for-low-latency-speech-recognition">3.《Listen
+Attentively, and Spell Once: Whole Sentence Generation via a
+Non-Autoregressive Architecture for Low-Latency Speech
+Recognition》</h3>
+<p>中科院自动化所 Ye Bai, Jiangyan Yi, Jianhua Tao, Zhengkun Tian,
+Zhengqi Wen, Shuai Zhang</p>
+<p>作者指出上一篇文章中提到的模型存在着仍然需要解码器多路前向传播来完成所有的
+<strong>[MASK]</strong> 预测</p>
+<p>作者认为可以通过提取语义，在不依赖显式语言模型的情况下生成标记序列，为此作者提出了
+<strong>LASO (Listen Attentively, and Spell Once)</strong></p>
+<figure>
+<img src="img/image-20211123101323894.png"
+alt="image-20211123101323894" />
+<figcaption aria-hidden="true">image-20211123101323894</figcaption>
+</figure>
+<p>作者认为可以从声音序列中提取出语言语义表示（这里指的是标签之前的关系），基于此作者定义基于位置的
+<strong>token</strong> 预测为 <span class="math display">\[
+z=Encoder(x)
+\\ P(y_i|x)=SummarizeAndDecode(z),\ \ i=1,2,\dots,L
+\]</span> 其中 <span class="math inline">\(z_i\)</span>
+是经过编码器表示后的隐藏表示序列</p>
+<p><strong>LASO</strong> 主要由三个部分组成，编码器，position dependent
+summarizer（PDS），解码器</p>
+<p>其中 <strong>PDS</strong> 负责将编码器输出总结为
+<strong>token</strong> 级别的表示，解码器则在每个位置生成
+<strong>token</strong></p>
+<p>编码器部分和常见的 <strong>ASR Transformer</strong> 编码器一致</p>
+<p>作者认为文本是高度压缩的语义表示，多个声学特征才能对应一个文本标记，为此作者设计了
+<strong>PDS</strong> 来总结编码器表示，并根据token位置来重新组织</p>
+<p>在 <strong>PDS</strong> 中有两个注意力部分，第一部分的
+<strong>Queries</strong> 是最大长度 <strong>L</strong>
+的位置编码，第二部分的 <strong>Queries</strong>
+是上一部分的输出，两部分的 <strong>Keys</strong> 和
+<strong>Values</strong> 都是编码器提供的，作者使用的是正弦函数来编码位置
+<span class="math display">\[
+pe_{i,2j}=sin(i/10000^{2j/D_m})
+\\ pe_{i,2j+1}=cos(i/10000^{2j/D_m})
+\]</span></p>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>ASR</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>BERT</title>
     <url>/2022/09/10/BERT/</url>
     <content><![CDATA[<p>介绍BERT相关知识</p>
@@ -457,6 +678,116 @@ International Conference on Machine Learning, F, 2017 [C]. PMLR.</p>
       </tags>
   </entry>
   <entry>
+    <title>Transformer</title>
+    <url>/2022/09/10/Transformer/</url>
+    <content><![CDATA[<p>介绍Transformer基础知识</p>
+<span id="more"></span>
+<p>Transformer避免使用循环神经网络，只使用注意力机制，其分为两个模块左边为encoder右边为decoder</p>
+<p><img src="img\image-20210112141734011.png" alt="image-20210112141734011" style="zoom: 80%;" /></p>
+<h3 id="encoder">1.Encoder</h3>
+<p>根据论文，Encoder由6个相同的layer组成，即图中左边单元，每个layer里面又有2个sub-layer分别为
+multi-head self-attention mechanism 和 fully connected feed-forward
+network，在每个sub-layer后加入了residual connection（残差连接）和layer
+normalization，因此每个sub-layer的输出为<span
+class="math inline">\(LayerNorm(x+Sublayer(x))\)</span>，为了引入残差连接，所有sub-layer和Embedding层输出的维度都是<span
+class="math inline">\(d_{model}=512\)</span></p>
+<h3 id="decoder">2.Decoder</h3>
+<p>与Encoder类似，但比其多一个sub-layer用于计算Encoder层输出的attention，同时由于模型是自回归（后面的token只取决于前面的token），因此在Decoder端加入mask保证训练和推理阶段的一致性，此处的mask处理是生成一个下三角全为0上三角为负无穷的矩阵，与之前的Scaled
+Score相加即可，此后再经过softmax后上三角全部变为0</p>
+<p><img src="img\zudAEJCTB5pFoZh.png" alt="img" style="zoom:60%;" /></p>
+<p><img src="img\U3FCQ0.png" alt="img" style="zoom:67%;" /></p>
+<h3 id="attention">3.Attention</h3>
+<p><span class="math display">\[
+Attention(Q,K,V)=softmax(\frac{QK^T}{\sqrt{d_k}})V
+\]</span></p>
+<p>在论文中其attention机制由于除去了<span
+class="math inline">\(\sqrt{d_k}\)</span>因此被叫做Scaled Dot-Product
+Attention，<span
+class="math inline">\(d_k\)</span>为输入的query和key的维度，作者同时解释了为何使用点积形式的attention，因为其可以写成矩阵乘法以便计算。同时作者说经过其测试，较小的<span
+class="math inline">\(d_k\)</span>值时，加性和点积计算结果差不多，但随着<span
+class="math inline">\(d_k\)</span>增大，加性点积表现效果更好，他们猜测是点积放大了幅度，因此进行归一化处理，即除以<span
+class="math inline">\(\sqrt{d_k}\)</span>（假设原来<span
+class="math inline">\(q\)</span>和<span
+class="math inline">\(k\)</span>的方差为1，则点积后方差会变为<span
+class="math inline">\(d_k\)</span>）</p>
+<p><img src="img\image-20210112155228788.png" alt="image-20210112155228788" style="zoom: 80%;" /></p>
+<h3 id="multi-head-attention">4.Multi-Head Attention</h3>
+<p>论文中使用的是Multi-Head Attention
+其将V,K,Q经过h次线性变换分别计算注意力值再拼接起来 <span
+class="math display">\[
+MultiHead(Q,K,V)=Concat(head_1,\cdots,head_h)W^O\\where\ \
+head_i=Attention(QW_i^Q,KW_i^K,VW_i^V)\\
+W_i^Q\in\mathbb{R}^{d_{model}\times
+d_k},W_i^k\in\mathbb{R}^{d_{model}\times
+d_k},W_i^V\in\mathbb{R}^{d_{model}\times
+d_v},W_i^O\in\mathbb{R}^{hd_v\times d_{model}}
+\]</span>
+使用这种注意力机制，其可以关注不同子空间的信息，相当于寻找序列不同角度之间的关系，最后再拼接在一起</p>
+<p>在论文中设置<span class="math inline">\(h=8\)</span>，<span
+class="math inline">\(d_k=d_v=d_{model}/h=64\)</span>总的计算量与single-head
+attention相比保持不变</p>
+<h3 id="position-encoding">5.Position Encoding</h3>
+<p>由于模型没有递归和卷积网络，因此需要引入位置编码来表征位置 <span
+class="math display">\[
+PE_{(pos,2i)}=sin(pos/10000^{2i/d_{model}})\\
+PE_{(pos,2i+1)}=cos(pos/10000^{2i/d_{model}})
+\]</span> 位置编码和embedding层维数相同，因此可以直接相加</p>
+<p>这里的Position Encoding是两个维度的函数可以将其看作是<span
+class="math inline">\(PE_{t,\omega_i}=sin(w_i\cdot t)\)</span>这里<span
+class="math inline">\(t\)</span>指代<span
+class="math inline">\(pos\)</span>，随着维度的增加，<span
+class="math inline">\(\omega_i\)</span>逐渐减少，因此在</p>
+<p>不同维度上周期在变换，在同一维度上，呈显出随位置变化的周期性</p>
+<p><img src="img\image-20210113100222041.png" alt="image-20210113100222041" style="zoom:67%;" /></p>
+<h3 id="padding-mask">6.Padding Mask</h3>
+<p>由于通常会将多个句子一同训练，对于句子之间长度不同此时需要用0进行补齐，这个过程称为padding</p>
+<p>但是这在进行softmax时会产生问题</p>
+<p><span class="math display">\[
+\sigma(z_i)=\frac{e^{z_i}}{\sum e^{z_j}}
+\]</span> 由于<span
+class="math inline">\(e^0=1\)</span>是有值的，意味着padding部分参与运算，因此需要mask操作让这些部分不参与，一般是给一个很大的负数偏置</p>
+<h3 id="layer-normalization">7.Layer Normalization</h3>
+<p>Layer Normalization
+的作用是把神经网络中隐藏层归一为标准正态分布，也就是 i.i.d
+独立同分布，以起到加快训练速度，加速收敛的作用 <span
+class="math display">\[
+\mu_j=\frac{1}{m}\sum_{i=1}^mx_{ij}\\
+\sigma_j^2=\frac{1}{m}\sum_{i=1}^m(x_{ij}-\mu_j)^2\\
+LayerNorm(x)=\frac{x_{ij}-\mu_j}{\sqrt{\sigma^2+\epsilon}}
+\]</span>
+<img src="img\MJnY847uNvWSaTk.png" alt="img" style="zoom:80%;" /></p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Transformer</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PyTorch 单机多卡训练方法</title>
+    <url>/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/</url>
+    <content><![CDATA[<p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
+<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="构造数据">2.构造数据</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
+<h4 id="模型初始化">3.模型初始化</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="训练设置">4.训练设置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="保存模型">5.保存模型</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>DDP</tag>
+        <tag>Pytorch</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>SLU文献</title>
     <url>/2022/09/10/SLU%E6%96%87%E7%8C%AE/</url>
     <content><![CDATA[<p>整理口语理解相关文献</p>
@@ -837,432 +1168,138 @@ alt="image-20210419103217174" />
       </tags>
   </entry>
   <entry>
-    <title>PyTorch 单机多卡训练方法</title>
-    <url>/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/</url>
-    <content><![CDATA[<p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
-<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h4 id="构造数据">2.构造数据</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
-<h4 id="模型初始化">3.模型初始化</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="训练设置">4.训练设置</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="保存模型">5.保存模型</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+    <title>Huggingface Transformers 教程</title>
+    <url>/2022/09/10/Transformers%E6%95%99%E7%A8%8B/</url>
+    <content><![CDATA[<p>本教程基于 Huggingface 的 Transformers
+(4.10.0)，其中大部分来自于官方文档 <span id="more"></span> ## 1.pipeline</p>
+<p>首先是最简单的使用方法 <strong>pipeline</strong>
+其可以直接利用制定的任务</p>
+<p>在 <strong>pipeline</strong>
+中指定了以下几种任务：情绪分析，文本生成，命名实体识别，回答问题，Mask预测，总结文本，翻译，文本特征向量提取</p>
+<p>其使用也很简单</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">classifier = pipeline(<span class="string">&#x27;sentiment-analysis&#x27;</span>)</span><br><span class="line">classifier(<span class="string">&#x27;We are very happy&#x27;</span>)</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;POSITIVE&#x27;, &#x27;score&#x27;: 0.9998835325241089&#125;</span></span><br></pre></td></tr></table></figure>
+<p>在这里由于模型没有指定使用什么预训练模型，因此默认调用 “
+distilbert-base-uncased-finetuned-sst-2-english”
+，可以注意到这是一个基于 <strong>DistilBERT</strong> 的架构，并在
+<strong>sst-2</strong>
+上针对情感预测进行了微调，当然你也可以指定想要使用的模型，可以在 <a
+href="https://huggingface.co/models">model hub</a>
+中寻找你想要使用的模型。这里使用一下中文模型
+“uer/roberta-base-finetuned-chinanews-chinese”，需要注意的是，这个模型是这是文本分类的任务，但也可以使用
+<strong>'sentiment-analysis'</strong> 的 <strong>pipeline</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">clasifier = pipeline(<span class="string">&quot;sentiment-analysis&quot;</span>, model=<span class="string">&quot;uer/roberta-base-finetuned-chinanews-chinese&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(clasifier(<span class="string">&quot;中国国足今天将和越南比赛&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;sports&#x27;, &#x27;score&#x27;: 0.999755322933197&#125;</span></span><br></pre></td></tr></table></figure>
+<p>除了网上的模型，我们还可以调用本地的模型，这里我们需要两个类
+<strong>AutoTokenizer，AutoModelForMaskedLM</strong>，这里笔者由于使用了自己训练的本地模型，因此使用的是
+<strong>BertTokenizer</strong> 和
+<strong>AutoModelForMaskedLM</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">model = AutoModelForMaskedLM.from_pretrained(<span class="string">&quot;Huggingface/output/checkpoint-884000/&quot;</span>)</span><br><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&quot;/Huggingface/vocab.txt&quot;</span>)</span><br><span class="line">unmask = pipeline(<span class="string">&quot;fill-mask&quot;</span>, model=model, tokenizer=tokenizer)</span><br><span class="line"><span class="built_in">print</span>(unmask(<span class="string">&quot;实验室规[MASK]管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 范 管 理 制 度&#x27;, &#x27;score&#x27;: 0.46887779235839844, &#x27;token&#x27;: 6457, &#x27;token_str&#x27;: &#x27;范&#x27;&#125;, &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 章 管 理 制 度&#x27;, &#x27;score&#x27;: 0.39199674129486084, &#x27;token&#x27;: 5512, &#x27;token_str&#x27;: &#x27;章&#x27;&#125;</span></span><br></pre></td></tr></table></figure>
+<p>至于其它的 <strong>pipeline</strong> 的使用可以参考<a
+href="%5BSummary%20of%20the%20tasks%20—%20transformers%204.12.2%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/task_summary.html#sequence-classification)">官方文档</a></p>
+<h2 id="tokenizer">2.tokenizer</h2>
+<p><strong>tokenizer</strong> 是 <strong>transformers</strong>
+的核心组件之一，负责将句子数字化和分词</p>
+<p>对于使用 <a href="https://huggingface.co/models">model hub</a>
+中的预训练模型来说，其必须要使用对应的 <strong>tokenizer</strong>
+，可以通过 <strong>AutoTokenizer.from_pretrained()</strong> 获得</p>
+<p>这里我们下载一下中文 <strong>BERT-BASE</strong> 的
+tokenizer，一般会得到四个文件</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br><span class="line">tokenizer.save_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br></pre></td></tr></table></figure>
+<figure>
+<img src="img\image-20211116144002979.png"
+alt="image-20211116144002979" />
+<figcaption aria-hidden="true">image-20211116144002979</figcaption>
+</figure>
+<p>其中 special_token_map.json指定了特殊token的形式，如
+<strong>[CLS]，[UNK]，[MASK]</strong> 等</p>
+<p>tokener.json和vocab.txt，则分别是词对应的数字和的词表，其中json文件还多了一部分信息用于描述
+<strong>tokenzier</strong> 中的特殊token</p>
+<p>tokenizer_config.json 则同样描述了特殊token和下载的tokenizer信息</p>
+<p>在得到 <strong>tokenizer</strong>
+后就可以对文本进行预处理，这里以中文为例</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer(<span class="string">&quot;实验室规章管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [101, 2141, 7741, 2147, 6226, 4995, 5052, 4415, 1169, 2428, 102], &#x27;token_type_ids&#x27;: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], &#x27;attention_mask&#x27;: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]&#125;</span></span><br></pre></td></tr></table></figure>
+<p>经过 <strong>tokenizer</strong>
+编码后会输出三项，<strong>input_ids</strong>
+是句子向量化以后的数字，<strong>token_type_ids</strong>
+是描述句子上下关系的，如果两个句子有上下文关联则会使用0和1加以区分，<strong>attention_mask</strong>
+则是描述句子的 <strong>padding</strong> 结构以指示哪些部分是
+<strong>padding</strong> 的</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line">sentence_1 = [<span class="string">&quot;我喜欢吃香菜&quot;</span>, <span class="string">&quot;去实验室吗&quot;</span>]</span><br><span class="line">sentence_2 = [<span class="string">&quot;我也喜欢吃&quot;</span>, <span class="string">&quot;去&quot;</span>]</span><br><span class="line"><span class="built_in">print</span>(tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [[101, 2769, 1599, 3614, 1391, 7676, 5831, 102, 2769, 738, 1599, 3614, 1391, 102], [101, 1343, 2141, 7741, 2147, 1408, 102, 1343, 102, 0, 0, 0, 0, 0]], </span></span><br><span class="line"><span class="comment">#&#x27;token_type_ids&#x27;: [[0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]], #&#x27;attention_mask&#x27;: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]]&#125;</span></span><br></pre></td></tr></table></figure>
+<p>当然既然可以使用 <strong>tokenizer</strong>
+对句子进行编码处理，那也可以使用 <strong>tokenizer</strong>
+对已经编码的句子进行还原</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">encoded_inputs = tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer.decode(encoded_inputs[<span class="string">&quot;input_ids&quot;</span>][<span class="number">1</span>]))</span><br><span class="line"><span class="comment"># [CLS] 去 实 验 室 吗 [SEP] 去 [SEP] [PAD] [PAD] [PAD] [PAD] [PAD]</span></span><br></pre></td></tr></table></figure>
+<p>当然我们也可以自己训练一个自己的
+<strong>tokenizer</strong>，这里就要用到 <strong><a
+href="%5BTokenizers%20—%20tokenizers%20documentation%20(huggingface.co)%5D(https://huggingface.co/docs/tokenizers/python/latest/)">Tokenizers</a></strong>
+库了，这里以训练 <strong>BPE</strong> 编码的tokenizer为例</p>
+<p>在 <strong>Tokenizers</strong> 中提供了四种算法，包括
+<strong>BPE，Unigram，WordLevel，WordPiece</strong> 这里仅以
+<strong>BPE</strong> 为例</p>
+<p>首先需要准备好训练的语料库，每个句子一行</p>
+<figure>
+<img src="img\image-20211117141652919.png"
+alt="image-20211117141652919" />
+<figcaption aria-hidden="true">image-20211117141652919</figcaption>
+</figure>
+<p>随后指定训练方法，预分词方法，预计词表大小，预先定义的特殊
+<strong>token</strong>，之后就可以开始训练模型并存储下来</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = Tokenizer(BPE())</span><br><span class="line">tokenizer.pre_tokenizer = Whitespace()</span><br><span class="line">trainer = BpeTrainer(special_tokens=[<span class="string">&quot;[UNK]&quot;</span>, <span class="string">&quot;[CLS]&quot;</span>, <span class="string">&quot;[SEP]&quot;</span>, <span class="string">&quot;[PAD]&quot;</span>, <span class="string">&quot;[MASK]&quot;</span>], vocab_size=<span class="number">9000</span>)</span><br><span class="line">tokenizer.train(files=[<span class="string">&quot;News2016/valid.txt&quot;</span>], trainer=trainer)</span><br><span class="line">tokenizer.save(<span class="string">&#x27;tokenizer.json&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>最后就可以得到 <strong>tokenizer</strong> 文件</p>
+<p>加载的时候需要注意的是，在 <strong>tokenizers</strong> 中的
+<strong>tokenizer</strong> 和 <strong>Transformers</strong> 中的
+<strong>tokenizer</strong> 不一样</p>
+<p>在tokenizers中加载只需要之前保存的 <strong>tokenizer.json</strong>
+但在 <strong>Transformers</strong> 中需要使用
+<strong>PreTrainedTokenizerFast</strong>
+来加载，且两者在后续的使用中虽然功能都一样但无法混用，即由
+<strong>Tokenizer</strong> 初始化的 <strong>tokenizer</strong>
+无法应用到 <strong>Transformers</strong> 中</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># tokenizers</span></span><br><span class="line">tokenizer = Tokenizer.from_file(<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br><span class="line"><span class="comment"># Transformers</span></span><br><span class="line">tokenizer = PreTrainedTokenizerFast(tokenizer_file=<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="models">3.Models</h2>
+<p><strong>Transformers</strong>
+支持众多预训练模型，这里主要可以分为：</p>
+<ol type="1">
+<li>解码器或自回归模型（GPT）</li>
+<li>编码器或自编码模型（BERT）</li>
+<li>序列到序列模型（T5）</li>
+<li>多模态模型</li>
+<li>基于检索的模型</li>
+</ol>
+<p>具体支持的模型可以在<a
+href="%5BPretrained%20models%20—%20transformers%204.12.4%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/pretrained_models.html)">官方文档</a>下查看</p>
+<p>具体使用的时候可以如同第一节所述直接加载训练好的模型，也可以自己重新训练一个模型，这里主要讲述如何训练一个模型</p>
+<p>首先需要准备的是语料库，和 <strong>tokenizer</strong>，注意这里的
+<strong>tokenizer</strong> 不可以是之前第二节中说的从
+<strong>tokenizers</strong> 中初始化的模型，必须从
+<strong>Transformers</strong> 中初始化</p>
+<p>接下来就是对所选模型的 <strong>config</strong> 进行改写，这里以
+<strong>BERT</strong> 为例，训练一个掩码模型MLM</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertModel, BertConfig</span><br><span class="line"><span class="comment"># 对config进行自定义修改，这里仅修改了词表大小</span></span><br><span class="line">configuration = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line"><span class="comment"># 初始化BERT模型</span></span><br><span class="line">model = BertForMaskedLM(configuration)</span><br></pre></td></tr></table></figure>
+<p>在准备训练数据集部分还需要用到另一个 <strong>huggingface</strong>
+的库 <strong>datasets</strong> 同样在 <a
+href="%5BHugging%20Face%20–%20The%20AI%20community%20building%20the%20future.%5D(https://huggingface.co/datasets)">datasets
+hub</a> 上有许多开源的库，可以直接调用</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;glue&#x27;</span>, <span class="string">&#x27;mrpc&#x27;</span>, split=<span class="string">&#x27;train&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>但其中的纯中文语料库并不多，可能还是需要读者自行准备相应的训练语料库</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset, Dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>接下来需要对dataset使用 <strong>tokenizer</strong> 进行处理</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="comment"># 去除空行</span></span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        <span class="comment"># 上面初始化的时候将数据集中起名为 text</span></span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br></pre></td></tr></table></figure>
+<p>之后就是设置 <strong>trainer</strong> 的相关参数</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>最后给出训练的完整代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&#x27;vocab.txt&#x27;</span>)</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line"><span class="comment"># 得到训练集和验证集</span></span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br><span class="line"></span><br><span class="line">config = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line">model = BertForMaskedLM(config)</span><br><span class="line"></span><br><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="fine-tuning">4.Fine-tuning</h2>
+<p>有了预训练模型后肯定还需要在具体任务上进行微调，这里以在IMDB上评价为正面还是负面为例（其实就是官方文档的例子）</p>
+<p>这里主要介绍如何在pytorch上进行微调，其核心还是利用
+<strong>Transformers</strong>
+中已经构建好的微调任务模型或者自己重写如何利用预训练模型</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AdamW</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoModelForSequenceClassification</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> get_scheduler</span><br><span class="line"><span class="keyword">from</span> tqdm.auto <span class="keyword">import</span> tqdm</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取数据集</span></span><br><span class="line">raw_datasets = load_dataset(<span class="string">&quot;imdb&quot;</span>)</span><br><span class="line"><span class="comment"># 获取tokenizer</span></span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将tokenizer自动应用到数据集上</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="keyword">return</span> tokenizer(examples[<span class="string">&quot;text&quot;</span>], padding=<span class="string">&quot;max_length&quot;</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">tokenized_datasets = raw_datasets.<span class="built_in">map</span>(tokenize_function, batched=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 去除数据集中没用的标签，并将输出设为torch的tensor格式</span></span><br><span class="line">tokenized_datasets = tokenized_datasets.remove_columns([<span class="string">&quot;text&quot;</span>])</span><br><span class="line">tokenized_datasets = tokenized_datasets.rename_column(<span class="string">&quot;label&quot;</span>, <span class="string">&quot;labels&quot;</span>)</span><br><span class="line">tokenized_datasets.set_format(<span class="string">&quot;torch&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 取一部分数据集做演示</span></span><br><span class="line">small_train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line">small_eval_dataset = tokenized_datasets[<span class="string">&quot;test&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建dataloader</span></span><br><span class="line">train_dataloader = DataLoader(small_train_dataset, shuffle=<span class="literal">True</span>, batch_size=<span class="number">8</span>)</span><br><span class="line">eval_dataloader = DataLoader(small_eval_dataset, batch_size=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建优化器</span></span><br><span class="line">optimizer = AdamW(model.parameters(), lr=<span class="number">5e-5</span>)</span><br><span class="line"><span class="comment"># 直接使用Transformer中有的模型</span></span><br><span class="line">model = AutoModelForSequenceClassification.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>, num_labels=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置变量和定义学习率变化方法</span></span><br><span class="line">num_epochs = <span class="number">3</span></span><br><span class="line">num_training_steps = num_epochs * <span class="built_in">len</span>(train_dataloader)</span><br><span class="line">lr_scheduler = get_scheduler(</span><br><span class="line">    <span class="string">&quot;linear&quot;</span>,</span><br><span class="line">    optimizer=optimizer,</span><br><span class="line">    num_warmup_steps=<span class="number">0</span>,</span><br><span class="line">    num_training_steps=num_training_steps</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">device = torch.device(<span class="string">&quot;cuda&quot;</span>) <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> torch.device(<span class="string">&quot;cpu&quot;</span>)</span><br><span class="line">model.to(device)</span><br><span class="line"></span><br><span class="line">progress_bar = tqdm(<span class="built_in">range</span>(num_training_steps))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始训练</span></span><br><span class="line">model.train()</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch <span class="keyword">in</span> train_dataloader:</span><br><span class="line">        batch = &#123;k: v.to(device) <span class="keyword">for</span> k, v <span class="keyword">in</span> batch.items()&#125;</span><br><span class="line">        outputs = model(**batch)</span><br><span class="line">        loss = outputs.loss</span><br><span class="line">        loss.backward()</span><br><span class="line"></span><br><span class="line">        optimizer.step()</span><br><span class="line">        lr_scheduler.step()</span><br><span class="line">        optimizer.zero_grad()</span><br><span class="line">        progress_bar.update(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>教程</category>
       </categories>
       <tags>
-        <tag>DDP</tag>
-        <tag>Pytorch</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ASR文献</title>
-    <url>/2022/09/10/ASR%E6%96%87%E7%8C%AE/</url>
-    <content><![CDATA[<p>整理ASR相关文献</p>
-<span id="more"></span>
-<h2 id="asr">ASR</h2>
-<h3
-id="a-re-thinking-asr-modeling-framework-using-attention-mechanisms">1.《A
-Re-thinking ASR Modeling Framework using Attention Mechanisms》</h3>
-<p>Chih-Ying Yang and Kuan-Yu Chen</p>
-<p>作者使用注意力机制来改进 <strong>ASR</strong></p>
-<p>作者提出的模型名为 <strong>re-thinking
-ASR</strong>（<strong>rt-ASR</strong>）</p>
-<figure>
-<img src="img\image-20220217095143475.png"
-alt="image-20220217095143475" />
-<figcaption aria-hidden="true">image-20220217095143475</figcaption>
-</figure>
-<p>作者的模型之所以叫 <strong>re-thinking ASR</strong>
-是因为它对假设的语言规律进行了计算，作者是希望通过重新思考假设的语言规律以及文本和声学特征来产生更准确的识别结果</p>
-<p>其主要包括 <strong>Encoder</strong> 和 <strong>Decoder</strong>
-两部分，其中 <strong>Decoder</strong> 部分使用的是 <strong>modified
-Transformer</strong>，其具有 <strong>mixed attention</strong> 和
-<strong>self-and-mixed attention</strong></p>
-<p>假设语音序列为 <span
-class="math inline">\(X=\{x_1,\dots,x_T\}\)</span> 对应的文本序列为
-<span class="math inline">\(Y=\{y_1,\dots,y_L\}\)</span></p>
-<p>在 <strong>特征提取</strong> 部分作者使用两层 <strong>CNN</strong>
-来获取语音特征，并设置步长为2，从而使得特征数减少到 <span
-class="math inline">\(\frac{1}{4}T\)</span> ,接下来引入位置编码，并通过
-<strong>N</strong> 层 <strong>Transformer</strong> 得到语音的编码特征
-<span
-class="math inline">\(H^\alpha=\{h^{\alpha}_1,\dots,h^{\alpha}_{T/4}\}\)</span></p>
-<p>在解码器部分作者想的是尽可能利用多模态信息，其输入是 <span
-class="math inline">\(\{Y^f,Y^s_{1:(m-1)}\}\)</span>，其中 <span
-class="math inline">\(Y^f=\{y^f_1,\dots,y^f_{L&#39;}\}\)</span>，是由
-<strong>ASR 假设（First Pass ASR）</strong> 得到的预测解码序列，而 <span
-class="math inline">\(Y^s_{1:(m-1)}=\{y^s_1,\dots,y^s_{m-1}\}\)</span>则是
-<strong>rt-ASR</strong>
-模型的输出，两个部分分别加上位置编码和段落编码，送入
-<strong>Decoder</strong></p>
-<p>在 <strong>mixed attention</strong> 部分 <span
-class="math display">\[
-Q_{mixed}=Y^s_{1:(m-1)}W^Q_{mixed}
-\\K_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^K_{mixed}
-\\V_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^V_{mixed}
-\\
-\overline{Y}^s_{1:(m-1)}=softmax(\frac{Q_{mixed}(K_{mixed})^T}{\sqrt{d}})V_{mixed}
-\]</span> 这里生成的 <span
-class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span>
-还拥有了未来的信息（由于 <strong>First Pass ASR</strong>）</p>
-<p>接下来利用 <strong>self-and-mixed attention</strong>
-来混合文本和声音信息，这一步除了利用 <span
-class="math inline">\(H^\alpha\)</span> 和 <span
-class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span> 得到 <span
-class="math inline">\(\overline{\overline{Y}}^s_{1:(m-1)}\)</span>
-以外，还计算了 <span class="math inline">\(H^\alpha\)</span>
-的自我注意力 <span
-class="math inline">\(\overline{H}^\alpha\)</span></p>
-<p>作者实验了两种 <strong>First Pass ASR</strong> 模型，发现都有
-<strong>3%</strong> 左右的提高</p>
-<figure>
-<img
-src="C:\Users\QYK\AppData\Roaming\Typora\typora-user-images\image-20220217110237148.png"
-alt="image-20220217110237148" />
-<figcaption aria-hidden="true">image-20220217110237148</figcaption>
-</figure>
-<h3
-id="specaugment-a-simple-data-augmentation-method-for-automatic-speech-recognition">2.《SpecAugment:
-A Simple Data Augmentation Method for Automatic Speech
-Recognition》</h3>
-<p>Daniel S. Park, William Chan, Yu Zhang, Chung-Cheng Chiu, Barret
-Zoph, Ekin D. Cubuk, Quoc V. Le</p>
-<p>作者提出了一种简单的用于 <strong>ASR</strong> 的数据增强的方法
-<strong>SpecAugment</strong></p>
-<p>作者提出的直接作用于 <strong>mel</strong> 频谱</p>
-<p>主要有三种方法，<strong>Time warping、Frequency masking、Time
-masking</strong></p>
-<p><strong>Time warping</strong>
-是指将图像除边界点外部分进行折叠，产生的效果类似水平平移</p>
-<p><strong>Frequency masking</strong> 则是在屏蔽某一特定宽度的频率值</p>
-<p><strong>Time masking</strong> 是屏蔽某一特定宽度的时间值</p>
-<figure>
-<img src="img\image-20220222102925728.png"
-alt="image-20220222102925728" />
-<figcaption aria-hidden="true">image-20220222102925728</figcaption>
-</figure>
-<h2 id="asr非自回归模型">ASR非自回归模型</h2>
-<p>目前的大部分序列到序列模型都是自回归模型，即利用上一解码步骤的结果来预测当前时间步的结果，但这样的自回归性质会导致在inference时出现很大的延迟，而非自回归模型则可以摆脱这种依赖，提高推理速度</p>
-<h3
-id="spike-triggered-non-autoregressive-transformer-for-end-to-end-speech-recognition">1.《Spike-Triggered
-Non-Autoregressive Transformer for End-to-End Speech Recognition》</h3>
-<p>中科院自动化所的文章 Zhengkun Tian, Jiangyan Yi, Jianhua Tao, Ye Bai,
-Shuai Zhang, Zhengqi Wen</p>
-<p>文章提出了讲非自回归网络应用到语音识别上</p>
-<p>具体使用的是 <strong>Non-Autoregressive
-Transformer（NAT）</strong>。一般的 <strong>NAT</strong>
-会采用固定的长度的掩码序列来作为输入，从而预测目标序列。因此该固定长度对模型性能有很大的影响，目前主要的方法有
-1. 引入神经网络来预测目标长度，但该方法需要对不同长度像本进行采样。2.
-设定固定长度，由于为了确保模型性能，长度往往会比目标序列长很多。3. 利用
-<strong>CTC</strong>
-损失代替交叉熵损失函数，但在inference时会生成重复标记和空白并不会提高infernece速度</p>
-<p>因此作者提出了 <strong>Spike-Triggered Non-Autoregressive
-Transformer（ST-NAT）</strong></p>
-<figure>
-<img src="img/image-20211119160633080.png"
-alt="image-20211119160633080" />
-<figcaption aria-hidden="true">image-20211119160633080</figcaption>
-</figure>
-<p>其主要由编码器，解码器，CTC组成，其中的编码器和解码器和Transformer类似</p>
-<p>首先对输入的语音序列进行卷积和添加位置信息，之后送入到编码器</p>
-<p>文章的主要创新点在引入CTC峰值模块对目标序列长度进行预测，将编码器的输出输入到CTC网络中，当CTC输出高过阈值之后记录触发阈值来估计长度</p>
-<p>随后做实验证明了CTC可以准确预测长度，并且也可以正确触发</p>
-<figure>
-<img src="img/image-20211119163056593.png"
-alt="image-20211119163056593" />
-<figcaption aria-hidden="true">image-20211119163056593</figcaption>
-</figure>
-<figure>
-<img src="img/image-20211119162801227.png"
-alt="image-20211119162801227" />
-<figcaption aria-hidden="true">image-20211119162801227</figcaption>
-</figure>
-<h3
-id="non-autoregressive-transformer-for-speech-recognition">2.《Non-Autoregressive
-Transformer for Speech Recognition》</h3>
-<p>Nanxin Chen，Shinji Watanabe，Jesús Villalba，Najim Dehak</p>
-<p>作者提出了两种非自回归模型：A-CMLM，A-FMLM</p>
-<p>目前深层Transformer已经在ASR上得到了很好的应用，但是由于其是自回归模型，在推理阶段会很难并行，消耗大量计算量</p>
-<p>因此作者提出使用非自回归模型，并支持目前在ASR领域的
-<strong>Non-Autoregressive</strong> 普遍依赖于 <strong>CTC</strong>
-，作者的灵感来自于 <strong>CMLM</strong></p>
-<p><img src="img/image-20211122141950209.png" /></p>
-<p>在传统的 <strong>ASR</strong>
-方面解码器根据之前的解码结果生成当前时间步骤的解码 <span
-class="math display">\[
-P(y_l|y_{&lt;l},x)=P_{dec}(y_l|y_{&lt;l},f_l(h))
-\]</span> 在训练阶段，可以通过给予正确的输入以达到并行解码，但在
-<strong>inference</strong> 的时候则需要一步步解码</p>
-<p>目前使用 <strong>Non-Autoregressive</strong> 有两种方法 一种是基于
-<strong>CTC</strong> 的方法，另一种则是多次迭代来完成预测</p>
-<p>作者提出的是 <strong>Audio-Conditional Masked Language Model
-(A-CMLM)</strong> 其思想是从以前结算中得到的部分替代自回归模型中的 <span
-class="math inline">\(y_{&lt;l}\)</span> 在模型中引入了
-<strong>[MASK]</strong> 标签，这里用<span
-class="math inline">\(L_M\)</span>和<span
-class="math inline">\(L_U\)</span>来表示被 <strong>MASK</strong>
-的部分和未被 <strong>MASK</strong> 的部分 <span class="math display">\[
-P(y_{L_M}|y_{L_U},x)=\prod_{l\in l_M}P_{dec}(y_l|y_{L_U},f_l(h))
-\]</span> 其过程如上图第二部分所示，在训练阶段随机 <strong>MASK</strong>
-部分，然后要求模型根据输入去预测这些被 <strong>MASK</strong>
-的部分，这里作者假设了预测被 <strong>MASK</strong>
-的部分之间是互相独立的，因此才可以实现概率上的相乘</p>
-<p>同时作者在 <strong>A-CMLM</strong> 的基础上提出了改进后的
-<strong>Audio-Factorized Masked Language Model (A-FMLM)</strong>
-，由于在 <strong>A-CMLM</strong> 中训练和 <strong>inference</strong>
-步骤之间还是存在一定差距，<strong>inference</strong>
-要求初始输入全部都是被 <strong>MASK</strong> 的，而
-<strong>A-CMLM</strong> 训练中还是需要有部分未被
-<strong>MASK</strong>的存在。为了缓解这种问题，作者提出了
-<strong>A-FMLM</strong></p>
-<p>作者假设输出长度为 <span class="math inline">\(L\)</span>，迭代次数为
-<span class="math inline">\(K\)</span> <span class="math display">\[
-Z_0=\phi
-\\ Z_K=[0,1,\dots,L-1]
-\\ \forall i \ \ Z_i\subset Z_{i+1}
-\]</span> 这样训练和推理过程都可以变为： <span class="math display">\[
-P(y|h)=\prod^{K}_{i=1}\prod_{l\in Z_i\cap
-\overline{Z}_{i-1}}P_{dec}(y_L|y_{Z_{i-1}},f_l(h))
-\]</span> 这样定义以后，自回归模型就变成了 <span
-class="math inline">\(K=L,Z_i=[0,1,\dots,i-1]\)</span> 的一种特例</p>
-<p>在推理过程中，使用了 <strong>easy decoding</strong>
-在第一次预测的时候先预测最可靠的标记，之后根据该结果进行后面的迭代</p>
-<p><img src="img/image-20211122164521127.png" /></p>
-<h3
-id="listen-attentively-and-spell-once-whole-sentence-generation-via-a-non-autoregressive-architecture-for-low-latency-speech-recognition">3.《Listen
-Attentively, and Spell Once: Whole Sentence Generation via a
-Non-Autoregressive Architecture for Low-Latency Speech
-Recognition》</h3>
-<p>中科院自动化所 Ye Bai, Jiangyan Yi, Jianhua Tao, Zhengkun Tian,
-Zhengqi Wen, Shuai Zhang</p>
-<p>作者指出上一篇文章中提到的模型存在着仍然需要解码器多路前向传播来完成所有的
-<strong>[MASK]</strong> 预测</p>
-<p>作者认为可以通过提取语义，在不依赖显式语言模型的情况下生成标记序列，为此作者提出了
-<strong>LASO (Listen Attentively, and Spell Once)</strong></p>
-<figure>
-<img src="img/image-20211123101323894.png"
-alt="image-20211123101323894" />
-<figcaption aria-hidden="true">image-20211123101323894</figcaption>
-</figure>
-<p>作者认为可以从声音序列中提取出语言语义表示（这里指的是标签之前的关系），基于此作者定义基于位置的
-<strong>token</strong> 预测为 <span class="math display">\[
-z=Encoder(x)
-\\ P(y_i|x)=SummarizeAndDecode(z),\ \ i=1,2,\dots,L
-\]</span> 其中 <span class="math inline">\(z_i\)</span>
-是经过编码器表示后的隐藏表示序列</p>
-<p><strong>LASO</strong> 主要由三个部分组成，编码器，position dependent
-summarizer（PDS），解码器</p>
-<p>其中 <strong>PDS</strong> 负责将编码器输出总结为
-<strong>token</strong> 级别的表示，解码器则在每个位置生成
-<strong>token</strong></p>
-<p>编码器部分和常见的 <strong>ASR Transformer</strong> 编码器一致</p>
-<p>作者认为文本是高度压缩的语义表示，多个声学特征才能对应一个文本标记，为此作者设计了
-<strong>PDS</strong> 来总结编码器表示，并根据token位置来重新组织</p>
-<p>在 <strong>PDS</strong> 中有两个注意力部分，第一部分的
-<strong>Queries</strong> 是最大长度 <strong>L</strong>
-的位置编码，第二部分的 <strong>Queries</strong>
-是上一部分的输出，两部分的 <strong>Keys</strong> 和
-<strong>Values</strong> 都是编码器提供的，作者使用的是正弦函数来编码位置
-<span class="math display">\[
-pe_{i,2j}=sin(i/10000^{2j/D_m})
-\\ pe_{i,2j+1}=cos(i/10000^{2j/D_m})
-\]</span></p>
-]]></content>
-      <categories>
-        <category>文献归纳</category>
-      </categories>
-      <tags>
-        <tag>ASR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Streaming ASR</title>
-    <url>/2022/09/10/Streaming%20ASR/</url>
-    <content><![CDATA[<p>整理流式ASR (Streaming ASR)相关文献 <span id="more"></span></p>
-<h2
-id="transformer-based-online-speech-recognition-with-decoder-end-adaptive-computation-steps">《TRANSFORMER-BASED
-ONLINE SPEECH RECOGNITION WITH DECODER-END ADAPTIVE COMPUTATION
-STEPS》</h2>
-<p>Mohan Li, Ca ̆ta ̆lin Zorila ̆ and Rama Doddipatla</p>
-<p>作者提出了 <strong>Decoder- end Adaptive Computation Steps,
-DACS</strong> 算法</p>
-<h3 id="introduction">1. INTRODUCTION</h3>
-<p>作者说明目前 End-to-End 模型普遍使用的都是 Transformer
-结构，但是该结构在面对 online speech recognition 时存在以下问题：</p>
-<ol type="1">
-<li>需要整个语句输入来计算全局的注意力</li>
-<li>每次都会对全部编码器输出执行
-normalisation，随着输出语句长度的增加，其计算成本和内存消耗越来越高</li>
-</ol>
-<p>因此需要一种新的方式来计算，以往尝试的方法有
-<strong>MoChA，sMoChA，MTA</strong>，这些方法都是基于
-<strong>Bernoulli</strong> 分布。 但是在 Transformer
-中由于使用的是多头注意力机制会出现，不同 head
-注意的时间点不同或者直到语音结束才触发的情况。</p>
-<p>作者提出的 <strong>DACS</strong> 算法则可以解决上述问题</p>
-<h3 id="transformer-for-online-asr">2. TRANSFORMER FOR ONLINE ASR</h3>
-<p>首先作者介绍了 baseline Transformer
-结构，随后介绍了几种基础的在线注意力计算方法包括
-<strong>HMA，MoChA，sMoChA，MTA</strong></p>
-<p>其中 <strong>sMoChA，MTA</strong> 都是在之前的模型上进一步简化</p>
-<h3
-id="online-transformer-asr-with-decoder-end-adaptive-computation-steps">3.
-ONLINE TRANSFORMER ASR WITH DECODER-END ADAPTIVE COMPUTATION STEPS</h3>
-<p>作者指出在线注意力机制的主要挑战在于延迟的控制，作者将解码的权重改为累积式的，达到阈值后触发，如过长时间未触发，则强制执行以控制延迟。</p>
-<p>作者是在 <strong>ACS</strong>
-算法的基础上改进而来，作者将其应用到编码器和解码器之间的相互注意力计算上</p>
-<p>对第 <span class="math inline">\(l\)</span> 解码层中的 <span
-class="math inline">\(head_h\)</span> 来说，energy
-的计算如下，在每个解码器时间步 <span class="math inline">\(i\)</span>
-对每个编码器时间步 <span class="math inline">\(j\)</span> 计算 <span
-class="math display">\[
-e_{i,j}=\frac{q_{i-1}k_j^T}{\sqrt{d_k}}
-\]</span> 随后计算概率 <span class="math inline">\(p_{i,j}\)</span>
-<span class="math display">\[
-p_{i,j}=Sigmoid(e_{i,j})
-\]</span> 从 <span class="math inline">\(j=1\)</span> 开始，一直计算
-<span class="math inline">\(P_{i,j}\)</span>
-的累积和直到其和大于1，但是也有可能出现 <span
-class="math inline">\(p_{i,:}\)</span>
-一直很小，此时就需要设置最大等待值 <span
-class="math inline">\(M\)</span>，以此来控制延迟</p>
-<p>因此总的来说区间长度 <span class="math inline">\(N_i\)</span>
-的计算为： <span class="math display">\[
-N_i=min\{min\{n:\sum_{j=1}^n p_{i,j}&gt;1\},M\}
-\]</span> 此时 <span class="math inline">\(c_i\)</span> 的计算变为：
-<span class="math display">\[
-c_i=\sum_{j=1}^{N_i}p_{i,j}v_j
-\]</span> 对于多头注意力机制来说，必须强制每个头的 <span
-class="math inline">\(N_i\)</span>
-相等，此处作者设置为全部头中的最大值</p>
-<p>接下来给出 Infernece 期间的伪代码：</p>
-<figure>
-<img src="img\image-20220614155611780.png"
-alt="image-20220614155611780" />
-<figcaption aria-hidden="true">image-20220614155611780</figcaption>
-</figure>
-<p>可以看到在infernece中每次计算的范围是 <span
-class="math inline">\(t_{i-1}\)</span> 到 <span
-class="math inline">\(t_{i-1}+M\)</span></p>
-<p>在训练过程中的计算则需要一个 MASK 矩阵来屏蔽剩余信息： <span
-class="math display">\[
-P=sigmod(\frac{QK^T}{\sqrt{d_k}})
-\\ M=ShiftRight(cumsum(P)&gt;1)
-\\ DACS(Q,K,V)=M⊙PV
-\]</span> 其中 <span class="math inline">\(M\)</span> 就是 MASK 矩阵</p>
-<h3 id="experiments">4. EXPERIMENTS</h3>
-<p>文章主体采用的是 chunk 形式，通过设置 <span
-class="math inline">\(N_c,N_l,N_r\)</span> 三个参数来控制 chunk
-大小，其中训练时只取中间 <span class="math inline">\(N_c\)</span>
-部分</p>
-<figure>
-<img src="img\image-20220614155703789.png"
-alt="image-20220614155703789" />
-<figcaption aria-hidden="true">image-20220614155703789</figcaption>
-</figure>
-<figure>
-<img src="img\image-20220614155247371.png"
-alt="image-20220614155247371" />
-<figcaption aria-hidden="true">image-20220614155247371</figcaption>
-</figure>
-]]></content>
-      <categories>
-        <category>文献归纳</category>
-      </categories>
-      <tags>
-        <tag>Streaming ASR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Transformer</title>
-    <url>/2022/09/10/Transformer/</url>
-    <content><![CDATA[<p>介绍Transformer基础知识</p>
-<span id="more"></span>
-<p>Transformer避免使用循环神经网络，只使用注意力机制，其分为两个模块左边为encoder右边为decoder</p>
-<p><img src="img\image-20210112141734011.png" alt="image-20210112141734011" style="zoom: 80%;" /></p>
-<h3 id="encoder">1.Encoder</h3>
-<p>根据论文，Encoder由6个相同的layer组成，即图中左边单元，每个layer里面又有2个sub-layer分别为
-multi-head self-attention mechanism 和 fully connected feed-forward
-network，在每个sub-layer后加入了residual connection（残差连接）和layer
-normalization，因此每个sub-layer的输出为<span
-class="math inline">\(LayerNorm(x+Sublayer(x))\)</span>，为了引入残差连接，所有sub-layer和Embedding层输出的维度都是<span
-class="math inline">\(d_{model}=512\)</span></p>
-<h3 id="decoder">2.Decoder</h3>
-<p>与Encoder类似，但比其多一个sub-layer用于计算Encoder层输出的attention，同时由于模型是自回归（后面的token只取决于前面的token），因此在Decoder端加入mask保证训练和推理阶段的一致性，此处的mask处理是生成一个下三角全为0上三角为负无穷的矩阵，与之前的Scaled
-Score相加即可，此后再经过softmax后上三角全部变为0</p>
-<p><img src="img\zudAEJCTB5pFoZh.png" alt="img" style="zoom:60%;" /></p>
-<p><img src="img\U3FCQ0.png" alt="img" style="zoom:67%;" /></p>
-<h3 id="attention">3.Attention</h3>
-<p><span class="math display">\[
-Attention(Q,K,V)=softmax(\frac{QK^T}{\sqrt{d_k}})V
-\]</span></p>
-<p>在论文中其attention机制由于除去了<span
-class="math inline">\(\sqrt{d_k}\)</span>因此被叫做Scaled Dot-Product
-Attention，<span
-class="math inline">\(d_k\)</span>为输入的query和key的维度，作者同时解释了为何使用点积形式的attention，因为其可以写成矩阵乘法以便计算。同时作者说经过其测试，较小的<span
-class="math inline">\(d_k\)</span>值时，加性和点积计算结果差不多，但随着<span
-class="math inline">\(d_k\)</span>增大，加性点积表现效果更好，他们猜测是点积放大了幅度，因此进行归一化处理，即除以<span
-class="math inline">\(\sqrt{d_k}\)</span>（假设原来<span
-class="math inline">\(q\)</span>和<span
-class="math inline">\(k\)</span>的方差为1，则点积后方差会变为<span
-class="math inline">\(d_k\)</span>）</p>
-<p><img src="img\image-20210112155228788.png" alt="image-20210112155228788" style="zoom: 80%;" /></p>
-<h3 id="multi-head-attention">4.Multi-Head Attention</h3>
-<p>论文中使用的是Multi-Head Attention
-其将V,K,Q经过h次线性变换分别计算注意力值再拼接起来 <span
-class="math display">\[
-MultiHead(Q,K,V)=Concat(head_1,\cdots,head_h)W^O\\where\ \
-head_i=Attention(QW_i^Q,KW_i^K,VW_i^V)\\
-W_i^Q\in\mathbb{R}^{d_{model}\times
-d_k},W_i^k\in\mathbb{R}^{d_{model}\times
-d_k},W_i^V\in\mathbb{R}^{d_{model}\times
-d_v},W_i^O\in\mathbb{R}^{hd_v\times d_{model}}
-\]</span>
-使用这种注意力机制，其可以关注不同子空间的信息，相当于寻找序列不同角度之间的关系，最后再拼接在一起</p>
-<p>在论文中设置<span class="math inline">\(h=8\)</span>，<span
-class="math inline">\(d_k=d_v=d_{model}/h=64\)</span>总的计算量与single-head
-attention相比保持不变</p>
-<h3 id="position-encoding">5.Position Encoding</h3>
-<p>由于模型没有递归和卷积网络，因此需要引入位置编码来表征位置 <span
-class="math display">\[
-PE_{(pos,2i)}=sin(pos/10000^{2i/d_{model}})\\
-PE_{(pos,2i+1)}=cos(pos/10000^{2i/d_{model}})
-\]</span> 位置编码和embedding层维数相同，因此可以直接相加</p>
-<p>这里的Position Encoding是两个维度的函数可以将其看作是<span
-class="math inline">\(PE_{t,\omega_i}=sin(w_i\cdot t)\)</span>这里<span
-class="math inline">\(t\)</span>指代<span
-class="math inline">\(pos\)</span>，随着维度的增加，<span
-class="math inline">\(\omega_i\)</span>逐渐减少，因此在</p>
-<p>不同维度上周期在变换，在同一维度上，呈显出随位置变化的周期性</p>
-<p><img src="img\image-20210113100222041.png" alt="image-20210113100222041" style="zoom:67%;" /></p>
-<h3 id="padding-mask">6.Padding Mask</h3>
-<p>由于通常会将多个句子一同训练，对于句子之间长度不同此时需要用0进行补齐，这个过程称为padding</p>
-<p>但是这在进行softmax时会产生问题</p>
-<p><span class="math display">\[
-\sigma(z_i)=\frac{e^{z_i}}{\sum e^{z_j}}
-\]</span> 由于<span
-class="math inline">\(e^0=1\)</span>是有值的，意味着padding部分参与运算，因此需要mask操作让这些部分不参与，一般是给一个很大的负数偏置</p>
-<h3 id="layer-normalization">7.Layer Normalization</h3>
-<p>Layer Normalization
-的作用是把神经网络中隐藏层归一为标准正态分布，也就是 i.i.d
-独立同分布，以起到加快训练速度，加速收敛的作用 <span
-class="math display">\[
-\mu_j=\frac{1}{m}\sum_{i=1}^mx_{ij}\\
-\sigma_j^2=\frac{1}{m}\sum_{i=1}^m(x_{ij}-\mu_j)^2\\
-LayerNorm(x)=\frac{x_{ij}-\mu_j}{\sqrt{\sigma^2+\epsilon}}
-\]</span>
-<img src="img\MJnY847uNvWSaTk.png" alt="img" style="zoom:80%;" /></p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>Transformer</tag>
+        <tag>Huggingface Transformers</tag>
       </tags>
   </entry>
   <entry>
@@ -1406,170 +1443,101 @@ alt="image-20221103152828904" />
       </tags>
   </entry>
   <entry>
-    <title>Huggingface Transformers 教程</title>
-    <url>/2022/09/10/Transformers%E6%95%99%E7%A8%8B/</url>
-    <content><![CDATA[<p>本教程基于 Huggingface 的 Transformers
-(4.10.0)，其中大部分来自于官方文档 <span id="more"></span> ## 1.pipeline</p>
-<p>首先是最简单的使用方法 <strong>pipeline</strong>
-其可以直接利用制定的任务</p>
-<p>在 <strong>pipeline</strong>
-中指定了以下几种任务：情绪分析，文本生成，命名实体识别，回答问题，Mask预测，总结文本，翻译，文本特征向量提取</p>
-<p>其使用也很简单</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">classifier = pipeline(<span class="string">&#x27;sentiment-analysis&#x27;</span>)</span><br><span class="line">classifier(<span class="string">&#x27;We are very happy&#x27;</span>)</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;POSITIVE&#x27;, &#x27;score&#x27;: 0.9998835325241089&#125;</span></span><br></pre></td></tr></table></figure>
-<p>在这里由于模型没有指定使用什么预训练模型，因此默认调用 “
-distilbert-base-uncased-finetuned-sst-2-english”
-，可以注意到这是一个基于 <strong>DistilBERT</strong> 的架构，并在
-<strong>sst-2</strong>
-上针对情感预测进行了微调，当然你也可以指定想要使用的模型，可以在 <a
-href="https://huggingface.co/models">model hub</a>
-中寻找你想要使用的模型。这里使用一下中文模型
-“uer/roberta-base-finetuned-chinanews-chinese”，需要注意的是，这个模型是这是文本分类的任务，但也可以使用
-<strong>'sentiment-analysis'</strong> 的 <strong>pipeline</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">clasifier = pipeline(<span class="string">&quot;sentiment-analysis&quot;</span>, model=<span class="string">&quot;uer/roberta-base-finetuned-chinanews-chinese&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(clasifier(<span class="string">&quot;中国国足今天将和越南比赛&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;sports&#x27;, &#x27;score&#x27;: 0.999755322933197&#125;</span></span><br></pre></td></tr></table></figure>
-<p>除了网上的模型，我们还可以调用本地的模型，这里我们需要两个类
-<strong>AutoTokenizer，AutoModelForMaskedLM</strong>，这里笔者由于使用了自己训练的本地模型，因此使用的是
-<strong>BertTokenizer</strong> 和
-<strong>AutoModelForMaskedLM</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">model = AutoModelForMaskedLM.from_pretrained(<span class="string">&quot;Huggingface/output/checkpoint-884000/&quot;</span>)</span><br><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&quot;/Huggingface/vocab.txt&quot;</span>)</span><br><span class="line">unmask = pipeline(<span class="string">&quot;fill-mask&quot;</span>, model=model, tokenizer=tokenizer)</span><br><span class="line"><span class="built_in">print</span>(unmask(<span class="string">&quot;实验室规[MASK]管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 范 管 理 制 度&#x27;, &#x27;score&#x27;: 0.46887779235839844, &#x27;token&#x27;: 6457, &#x27;token_str&#x27;: &#x27;范&#x27;&#125;, &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 章 管 理 制 度&#x27;, &#x27;score&#x27;: 0.39199674129486084, &#x27;token&#x27;: 5512, &#x27;token_str&#x27;: &#x27;章&#x27;&#125;</span></span><br></pre></td></tr></table></figure>
-<p>至于其它的 <strong>pipeline</strong> 的使用可以参考<a
-href="%5BSummary%20of%20the%20tasks%20—%20transformers%204.12.2%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/task_summary.html#sequence-classification)">官方文档</a></p>
-<h2 id="tokenizer">2.tokenizer</h2>
-<p><strong>tokenizer</strong> 是 <strong>transformers</strong>
-的核心组件之一，负责将句子数字化和分词</p>
-<p>对于使用 <a href="https://huggingface.co/models">model hub</a>
-中的预训练模型来说，其必须要使用对应的 <strong>tokenizer</strong>
-，可以通过 <strong>AutoTokenizer.from_pretrained()</strong> 获得</p>
-<p>这里我们下载一下中文 <strong>BERT-BASE</strong> 的
-tokenizer，一般会得到四个文件</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br><span class="line">tokenizer.save_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br></pre></td></tr></table></figure>
-<figure>
-<img src="img\image-20211116144002979.png"
-alt="image-20211116144002979" />
-<figcaption aria-hidden="true">image-20211116144002979</figcaption>
-</figure>
-<p>其中 special_token_map.json指定了特殊token的形式，如
-<strong>[CLS]，[UNK]，[MASK]</strong> 等</p>
-<p>tokener.json和vocab.txt，则分别是词对应的数字和的词表，其中json文件还多了一部分信息用于描述
-<strong>tokenzier</strong> 中的特殊token</p>
-<p>tokenizer_config.json 则同样描述了特殊token和下载的tokenizer信息</p>
-<p>在得到 <strong>tokenizer</strong>
-后就可以对文本进行预处理，这里以中文为例</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer(<span class="string">&quot;实验室规章管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [101, 2141, 7741, 2147, 6226, 4995, 5052, 4415, 1169, 2428, 102], &#x27;token_type_ids&#x27;: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], &#x27;attention_mask&#x27;: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]&#125;</span></span><br></pre></td></tr></table></figure>
-<p>经过 <strong>tokenizer</strong>
-编码后会输出三项，<strong>input_ids</strong>
-是句子向量化以后的数字，<strong>token_type_ids</strong>
-是描述句子上下关系的，如果两个句子有上下文关联则会使用0和1加以区分，<strong>attention_mask</strong>
-则是描述句子的 <strong>padding</strong> 结构以指示哪些部分是
-<strong>padding</strong> 的</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line">sentence_1 = [<span class="string">&quot;我喜欢吃香菜&quot;</span>, <span class="string">&quot;去实验室吗&quot;</span>]</span><br><span class="line">sentence_2 = [<span class="string">&quot;我也喜欢吃&quot;</span>, <span class="string">&quot;去&quot;</span>]</span><br><span class="line"><span class="built_in">print</span>(tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [[101, 2769, 1599, 3614, 1391, 7676, 5831, 102, 2769, 738, 1599, 3614, 1391, 102], [101, 1343, 2141, 7741, 2147, 1408, 102, 1343, 102, 0, 0, 0, 0, 0]], </span></span><br><span class="line"><span class="comment">#&#x27;token_type_ids&#x27;: [[0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]], #&#x27;attention_mask&#x27;: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]]&#125;</span></span><br></pre></td></tr></table></figure>
-<p>当然既然可以使用 <strong>tokenizer</strong>
-对句子进行编码处理，那也可以使用 <strong>tokenizer</strong>
-对已经编码的句子进行还原</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">encoded_inputs = tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer.decode(encoded_inputs[<span class="string">&quot;input_ids&quot;</span>][<span class="number">1</span>]))</span><br><span class="line"><span class="comment"># [CLS] 去 实 验 室 吗 [SEP] 去 [SEP] [PAD] [PAD] [PAD] [PAD] [PAD]</span></span><br></pre></td></tr></table></figure>
-<p>当然我们也可以自己训练一个自己的
-<strong>tokenizer</strong>，这里就要用到 <strong><a
-href="%5BTokenizers%20—%20tokenizers%20documentation%20(huggingface.co)%5D(https://huggingface.co/docs/tokenizers/python/latest/)">Tokenizers</a></strong>
-库了，这里以训练 <strong>BPE</strong> 编码的tokenizer为例</p>
-<p>在 <strong>Tokenizers</strong> 中提供了四种算法，包括
-<strong>BPE，Unigram，WordLevel，WordPiece</strong> 这里仅以
-<strong>BPE</strong> 为例</p>
-<p>首先需要准备好训练的语料库，每个句子一行</p>
-<figure>
-<img src="img\image-20211117141652919.png"
-alt="image-20211117141652919" />
-<figcaption aria-hidden="true">image-20211117141652919</figcaption>
-</figure>
-<p>随后指定训练方法，预分词方法，预计词表大小，预先定义的特殊
-<strong>token</strong>，之后就可以开始训练模型并存储下来</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = Tokenizer(BPE())</span><br><span class="line">tokenizer.pre_tokenizer = Whitespace()</span><br><span class="line">trainer = BpeTrainer(special_tokens=[<span class="string">&quot;[UNK]&quot;</span>, <span class="string">&quot;[CLS]&quot;</span>, <span class="string">&quot;[SEP]&quot;</span>, <span class="string">&quot;[PAD]&quot;</span>, <span class="string">&quot;[MASK]&quot;</span>], vocab_size=<span class="number">9000</span>)</span><br><span class="line">tokenizer.train(files=[<span class="string">&quot;News2016/valid.txt&quot;</span>], trainer=trainer)</span><br><span class="line">tokenizer.save(<span class="string">&#x27;tokenizer.json&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<p>最后就可以得到 <strong>tokenizer</strong> 文件</p>
-<p>加载的时候需要注意的是，在 <strong>tokenizers</strong> 中的
-<strong>tokenizer</strong> 和 <strong>Transformers</strong> 中的
-<strong>tokenizer</strong> 不一样</p>
-<p>在tokenizers中加载只需要之前保存的 <strong>tokenizer.json</strong>
-但在 <strong>Transformers</strong> 中需要使用
-<strong>PreTrainedTokenizerFast</strong>
-来加载，且两者在后续的使用中虽然功能都一样但无法混用，即由
-<strong>Tokenizer</strong> 初始化的 <strong>tokenizer</strong>
-无法应用到 <strong>Transformers</strong> 中</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># tokenizers</span></span><br><span class="line">tokenizer = Tokenizer.from_file(<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br><span class="line"><span class="comment"># Transformers</span></span><br><span class="line">tokenizer = PreTrainedTokenizerFast(tokenizer_file=<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br></pre></td></tr></table></figure>
-<h2 id="models">3.Models</h2>
-<p><strong>Transformers</strong>
-支持众多预训练模型，这里主要可以分为：</p>
+    <title>Streaming ASR</title>
+    <url>/2022/09/10/Streaming%20ASR/</url>
+    <content><![CDATA[<p>整理流式ASR (Streaming ASR)相关文献 <span id="more"></span></p>
+<h2
+id="transformer-based-online-speech-recognition-with-decoder-end-adaptive-computation-steps">《TRANSFORMER-BASED
+ONLINE SPEECH RECOGNITION WITH DECODER-END ADAPTIVE COMPUTATION
+STEPS》</h2>
+<p>Mohan Li, Ca ̆ta ̆lin Zorila ̆ and Rama Doddipatla</p>
+<p>作者提出了 <strong>Decoder- end Adaptive Computation Steps,
+DACS</strong> 算法</p>
+<h3 id="introduction">1. INTRODUCTION</h3>
+<p>作者说明目前 End-to-End 模型普遍使用的都是 Transformer
+结构，但是该结构在面对 online speech recognition 时存在以下问题：</p>
 <ol type="1">
-<li>解码器或自回归模型（GPT）</li>
-<li>编码器或自编码模型（BERT）</li>
-<li>序列到序列模型（T5）</li>
-<li>多模态模型</li>
-<li>基于检索的模型</li>
+<li>需要整个语句输入来计算全局的注意力</li>
+<li>每次都会对全部编码器输出执行
+normalisation，随着输出语句长度的增加，其计算成本和内存消耗越来越高</li>
 </ol>
-<p>具体支持的模型可以在<a
-href="%5BPretrained%20models%20—%20transformers%204.12.4%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/pretrained_models.html)">官方文档</a>下查看</p>
-<p>具体使用的时候可以如同第一节所述直接加载训练好的模型，也可以自己重新训练一个模型，这里主要讲述如何训练一个模型</p>
-<p>首先需要准备的是语料库，和 <strong>tokenizer</strong>，注意这里的
-<strong>tokenizer</strong> 不可以是之前第二节中说的从
-<strong>tokenizers</strong> 中初始化的模型，必须从
-<strong>Transformers</strong> 中初始化</p>
-<p>接下来就是对所选模型的 <strong>config</strong> 进行改写，这里以
-<strong>BERT</strong> 为例，训练一个掩码模型MLM</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertModel, BertConfig</span><br><span class="line"><span class="comment"># 对config进行自定义修改，这里仅修改了词表大小</span></span><br><span class="line">configuration = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line"><span class="comment"># 初始化BERT模型</span></span><br><span class="line">model = BertForMaskedLM(configuration)</span><br></pre></td></tr></table></figure>
-<p>在准备训练数据集部分还需要用到另一个 <strong>huggingface</strong>
-的库 <strong>datasets</strong> 同样在 <a
-href="%5BHugging%20Face%20–%20The%20AI%20community%20building%20the%20future.%5D(https://huggingface.co/datasets)">datasets
-hub</a> 上有许多开源的库，可以直接调用</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;glue&#x27;</span>, <span class="string">&#x27;mrpc&#x27;</span>, split=<span class="string">&#x27;train&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<p>但其中的纯中文语料库并不多，可能还是需要读者自行准备相应的训练语料库</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset, Dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
-<p>接下来需要对dataset使用 <strong>tokenizer</strong> 进行处理</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="comment"># 去除空行</span></span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        <span class="comment"># 上面初始化的时候将数据集中起名为 text</span></span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br></pre></td></tr></table></figure>
-<p>之后就是设置 <strong>trainer</strong> 的相关参数</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<p>最后给出训练的完整代码</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&#x27;vocab.txt&#x27;</span>)</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line"><span class="comment"># 得到训练集和验证集</span></span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br><span class="line"></span><br><span class="line">config = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line">model = BertForMaskedLM(config)</span><br><span class="line"></span><br><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h2 id="fine-tuning">4.Fine-tuning</h2>
-<p>有了预训练模型后肯定还需要在具体任务上进行微调，这里以在IMDB上评价为正面还是负面为例（其实就是官方文档的例子）</p>
-<p>这里主要介绍如何在pytorch上进行微调，其核心还是利用
-<strong>Transformers</strong>
-中已经构建好的微调任务模型或者自己重写如何利用预训练模型</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AdamW</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoModelForSequenceClassification</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> get_scheduler</span><br><span class="line"><span class="keyword">from</span> tqdm.auto <span class="keyword">import</span> tqdm</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取数据集</span></span><br><span class="line">raw_datasets = load_dataset(<span class="string">&quot;imdb&quot;</span>)</span><br><span class="line"><span class="comment"># 获取tokenizer</span></span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将tokenizer自动应用到数据集上</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="keyword">return</span> tokenizer(examples[<span class="string">&quot;text&quot;</span>], padding=<span class="string">&quot;max_length&quot;</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">tokenized_datasets = raw_datasets.<span class="built_in">map</span>(tokenize_function, batched=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 去除数据集中没用的标签，并将输出设为torch的tensor格式</span></span><br><span class="line">tokenized_datasets = tokenized_datasets.remove_columns([<span class="string">&quot;text&quot;</span>])</span><br><span class="line">tokenized_datasets = tokenized_datasets.rename_column(<span class="string">&quot;label&quot;</span>, <span class="string">&quot;labels&quot;</span>)</span><br><span class="line">tokenized_datasets.set_format(<span class="string">&quot;torch&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 取一部分数据集做演示</span></span><br><span class="line">small_train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line">small_eval_dataset = tokenized_datasets[<span class="string">&quot;test&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建dataloader</span></span><br><span class="line">train_dataloader = DataLoader(small_train_dataset, shuffle=<span class="literal">True</span>, batch_size=<span class="number">8</span>)</span><br><span class="line">eval_dataloader = DataLoader(small_eval_dataset, batch_size=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建优化器</span></span><br><span class="line">optimizer = AdamW(model.parameters(), lr=<span class="number">5e-5</span>)</span><br><span class="line"><span class="comment"># 直接使用Transformer中有的模型</span></span><br><span class="line">model = AutoModelForSequenceClassification.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>, num_labels=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置变量和定义学习率变化方法</span></span><br><span class="line">num_epochs = <span class="number">3</span></span><br><span class="line">num_training_steps = num_epochs * <span class="built_in">len</span>(train_dataloader)</span><br><span class="line">lr_scheduler = get_scheduler(</span><br><span class="line">    <span class="string">&quot;linear&quot;</span>,</span><br><span class="line">    optimizer=optimizer,</span><br><span class="line">    num_warmup_steps=<span class="number">0</span>,</span><br><span class="line">    num_training_steps=num_training_steps</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">device = torch.device(<span class="string">&quot;cuda&quot;</span>) <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> torch.device(<span class="string">&quot;cpu&quot;</span>)</span><br><span class="line">model.to(device)</span><br><span class="line"></span><br><span class="line">progress_bar = tqdm(<span class="built_in">range</span>(num_training_steps))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始训练</span></span><br><span class="line">model.train()</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch <span class="keyword">in</span> train_dataloader:</span><br><span class="line">        batch = &#123;k: v.to(device) <span class="keyword">for</span> k, v <span class="keyword">in</span> batch.items()&#125;</span><br><span class="line">        outputs = model(**batch)</span><br><span class="line">        loss = outputs.loss</span><br><span class="line">        loss.backward()</span><br><span class="line"></span><br><span class="line">        optimizer.step()</span><br><span class="line">        lr_scheduler.step()</span><br><span class="line">        optimizer.zero_grad()</span><br><span class="line">        progress_bar.update(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>因此需要一种新的方式来计算，以往尝试的方法有
+<strong>MoChA，sMoChA，MTA</strong>，这些方法都是基于
+<strong>Bernoulli</strong> 分布。 但是在 Transformer
+中由于使用的是多头注意力机制会出现，不同 head
+注意的时间点不同或者直到语音结束才触发的情况。</p>
+<p>作者提出的 <strong>DACS</strong> 算法则可以解决上述问题</p>
+<h3 id="transformer-for-online-asr">2. TRANSFORMER FOR ONLINE ASR</h3>
+<p>首先作者介绍了 baseline Transformer
+结构，随后介绍了几种基础的在线注意力计算方法包括
+<strong>HMA，MoChA，sMoChA，MTA</strong></p>
+<p>其中 <strong>sMoChA，MTA</strong> 都是在之前的模型上进一步简化</p>
+<h3
+id="online-transformer-asr-with-decoder-end-adaptive-computation-steps">3.
+ONLINE TRANSFORMER ASR WITH DECODER-END ADAPTIVE COMPUTATION STEPS</h3>
+<p>作者指出在线注意力机制的主要挑战在于延迟的控制，作者将解码的权重改为累积式的，达到阈值后触发，如过长时间未触发，则强制执行以控制延迟。</p>
+<p>作者是在 <strong>ACS</strong>
+算法的基础上改进而来，作者将其应用到编码器和解码器之间的相互注意力计算上</p>
+<p>对第 <span class="math inline">\(l\)</span> 解码层中的 <span
+class="math inline">\(head_h\)</span> 来说，energy
+的计算如下，在每个解码器时间步 <span class="math inline">\(i\)</span>
+对每个编码器时间步 <span class="math inline">\(j\)</span> 计算 <span
+class="math display">\[
+e_{i,j}=\frac{q_{i-1}k_j^T}{\sqrt{d_k}}
+\]</span> 随后计算概率 <span class="math inline">\(p_{i,j}\)</span>
+<span class="math display">\[
+p_{i,j}=Sigmoid(e_{i,j})
+\]</span> 从 <span class="math inline">\(j=1\)</span> 开始，一直计算
+<span class="math inline">\(P_{i,j}\)</span>
+的累积和直到其和大于1，但是也有可能出现 <span
+class="math inline">\(p_{i,:}\)</span>
+一直很小，此时就需要设置最大等待值 <span
+class="math inline">\(M\)</span>，以此来控制延迟</p>
+<p>因此总的来说区间长度 <span class="math inline">\(N_i\)</span>
+的计算为： <span class="math display">\[
+N_i=min\{min\{n:\sum_{j=1}^n p_{i,j}&gt;1\},M\}
+\]</span> 此时 <span class="math inline">\(c_i\)</span> 的计算变为：
+<span class="math display">\[
+c_i=\sum_{j=1}^{N_i}p_{i,j}v_j
+\]</span> 对于多头注意力机制来说，必须强制每个头的 <span
+class="math inline">\(N_i\)</span>
+相等，此处作者设置为全部头中的最大值</p>
+<p>接下来给出 Infernece 期间的伪代码：</p>
+<figure>
+<img src="img\image-20220614155611780.png"
+alt="image-20220614155611780" />
+<figcaption aria-hidden="true">image-20220614155611780</figcaption>
+</figure>
+<p>可以看到在infernece中每次计算的范围是 <span
+class="math inline">\(t_{i-1}\)</span> 到 <span
+class="math inline">\(t_{i-1}+M\)</span></p>
+<p>在训练过程中的计算则需要一个 MASK 矩阵来屏蔽剩余信息： <span
+class="math display">\[
+P=sigmod(\frac{QK^T}{\sqrt{d_k}})
+\\ M=ShiftRight(cumsum(P)&gt;1)
+\\ DACS(Q,K,V)=M⊙PV
+\]</span> 其中 <span class="math inline">\(M\)</span> 就是 MASK 矩阵</p>
+<h3 id="experiments">4. EXPERIMENTS</h3>
+<p>文章主体采用的是 chunk 形式，通过设置 <span
+class="math inline">\(N_c,N_l,N_r\)</span> 三个参数来控制 chunk
+大小，其中训练时只取中间 <span class="math inline">\(N_c\)</span>
+部分</p>
+<figure>
+<img src="img\image-20220614155703789.png"
+alt="image-20220614155703789" />
+<figcaption aria-hidden="true">image-20220614155703789</figcaption>
+</figure>
+<figure>
+<img src="img\image-20220614155247371.png"
+alt="image-20220614155247371" />
+<figcaption aria-hidden="true">image-20220614155247371</figcaption>
+</figure>
 ]]></content>
       <categories>
-        <category>教程</category>
+        <category>文献归纳</category>
       </categories>
       <tags>
-        <tag>Huggingface Transformers</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Warm-up在Transformer中的作用</title>
-    <url>/2022/09/10/Warm-up%E5%9C%A8Transformer%E4%B8%AD%E7%9A%84%E4%BD%9C%E7%94%A8/</url>
-    <content><![CDATA[<p>介绍Warm-up在Transformer中的作用</p>
-<span id="more"></span>
-<p>ICLR 2020</p>
-<p>文章开头指出了Warm-up在Transformer结构中有十分重要的地位，Transformer的最终性能对设定的最大学习率和迭代次数的值都会非常敏感</p>
-<p>作者发现其敏感性与Layer-Norm层的位置有密切联系，当Layer-Norm层在残差块中间时，靠近输出层部分的参数的梯度的期望将会很大。因此在没有Warm-up阶段时，直接对这些参数应用较大的学习率会导致模型优化不稳定</p>
-<p>因此作者提出了Transformer的一种变体结构即Pre-LN，其如图（b）所示
-，在Pre-LN模型中Layer-Norm层被放到了模型的残差连接里面，在这种结构下可以不使用Warm-up方法</p>
-<figure>
-<img src="img/image-20210928160317548.png"
-alt="image-20210928160317548" />
-<figcaption aria-hidden="true">image-20210928160317548</figcaption>
-</figure>
-<p>首先作者对不同优化器（Adam，SGD）进行了测试，在测试中可以看出，不使用Warm-up会导致最后性能较差，且Warm-up的步长<span
-class="math inline">\(T_{warmup}\)</span>也是很重要的超参数，同样会影响最后的性能</p>
-<figure>
-<img src="img/image-20210928193823009.png"
-alt="image-20210928193823009" />
-<figcaption aria-hidden="true">image-20210928193823009</figcaption>
-</figure>
-<p>在对比实验中同样可以发现，Warm-up不仅仅对Adam有效，也对SGD优化器有效</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>Transformer</tag>
-        <tag>Warm-up</tag>
+        <tag>Streaming ASR</tag>
       </tags>
   </entry>
   <entry>
@@ -1673,6 +1641,102 @@ href="https://github.com/microsoft/onnxruntime/releases">ONNXRuntime</a>，这�
         <tag>ONNXRuntime</tag>
         <tag>嵌入式</tag>
         <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Warm-up在Transformer中的作用</title>
+    <url>/2022/09/10/Warm-up%E5%9C%A8Transformer%E4%B8%AD%E7%9A%84%E4%BD%9C%E7%94%A8/</url>
+    <content><![CDATA[<p>介绍Warm-up在Transformer中的作用</p>
+<span id="more"></span>
+<p>ICLR 2020</p>
+<p>文章开头指出了Warm-up在Transformer结构中有十分重要的地位，Transformer的最终性能对设定的最大学习率和迭代次数的值都会非常敏感</p>
+<p>作者发现其敏感性与Layer-Norm层的位置有密切联系，当Layer-Norm层在残差块中间时，靠近输出层部分的参数的梯度的期望将会很大。因此在没有Warm-up阶段时，直接对这些参数应用较大的学习率会导致模型优化不稳定</p>
+<p>因此作者提出了Transformer的一种变体结构即Pre-LN，其如图（b）所示
+，在Pre-LN模型中Layer-Norm层被放到了模型的残差连接里面，在这种结构下可以不使用Warm-up方法</p>
+<figure>
+<img src="img/image-20210928160317548.png"
+alt="image-20210928160317548" />
+<figcaption aria-hidden="true">image-20210928160317548</figcaption>
+</figure>
+<p>首先作者对不同优化器（Adam，SGD）进行了测试，在测试中可以看出，不使用Warm-up会导致最后性能较差，且Warm-up的步长<span
+class="math inline">\(T_{warmup}\)</span>也是很重要的超参数，同样会影响最后的性能</p>
+<figure>
+<img src="img/image-20210928193823009.png"
+alt="image-20210928193823009" />
+<figcaption aria-hidden="true">image-20210928193823009</figcaption>
+</figure>
+<p>在对比实验中同样可以发现，Warm-up不仅仅对Adam有效，也对SGD优化器有效</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Transformer</tag>
+        <tag>Warm-up</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>语言模型文献</title>
+    <url>/2022/09/10/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理语言模型相关文献</p>
+<span id="more"></span>
+<p>语言模型一般指用来衡量一句话符合语言习惯的概率，目前主流的是采用大规模数据参与训练的预训练模型BERT等</p>
+<h2
+id="intrinsic-dimensionality-explains-the-effec--tiveness-of-language-model-fine-tuning">1.《INTRINSIC
+DIMENSIONALITY EXPLAINS THE EFFEC- TIVENESS OF LANGUAGE MODEL
+FINE-TUNING》</h2>
+<p>Armen Aghajanyan, Luke Zettlemoyer, Sonal Gupta</p>
+<p>作者这篇论文是基于《MEASURING THE INTRINSIC DIMENSION OF OBJECTIVE
+LANDSCAPES》</p>
+<p>作者试图解释为什么目前主流的fine-tuned可以生效，作者认为可以通过
+<strong>intrinsic dimension</strong>
+（本征维度）来解释，作者研究发现常见的预训练模型都有很低的
+<strong>intrinsic dimension</strong>
+这意味着可以通过很小的维度参数重载实现和全参数fine-tuned一样的效果。</p>
+<p>作者在文章一开始提出了为什么预训练模型可以只用简单的梯度下降（relative
+vanilla gradient
+descent）就可以在小型数据集上经过微调起作用。作者认为可以通过对<strong>intrinsic
+dimension</strong> 的研究来寻找这个问题的答案，<strong>intrinsic
+dimension</strong>
+代表了为了解决目标函数所定义的问题所需的最小纬度。可以通过测量本征纬度知道需要多少自由参数来实现和fine-tuned一样的效果</p>
+<h3 id="intrinsic-dimension">intrinsic dimension</h3>
+<p><strong>intrinsic dimension</strong>
+被定义为目标函数达到满意的结果所需的最小参数数量（<a
+href="https://arxiv.org/abs/1804.08838">Li et al. 2018</a>）</p>
+<p>然而根据定义计算目标函数的 <strong>intrinsic dimension</strong>
+是十分困难的，因此作者采用了启发式计算方法来计算其上限</p>
+<p>定义 <span
+class="math inline">\(\theta^D=[\theta_0,\theta_1,\dots,\theta_m]\)</span>是一组描述模型<span
+class="math inline">\(f(\cdot,\theta)\)</span>维度为<span
+class="math inline">\(D\)</span>的参数，在训练的时候不是直接使用全参数<span
+class="math inline">\(\theta^D\)</span>去更新而是通过子空间去更新，再将更新的参数映射回<span
+class="math inline">\(D\)</span>​维度，其过程如下面公式所描述的： <span
+class="math display">\[
+\theta^D=\theta^D_0+P(\theta^d)
+\]</span></p>
+<p>其中<span
+class="math inline">\(P(\cdot)\)</span>是一个映射负责从低维<span
+class="math inline">\(d\)</span>映射到高维度<span
+class="math inline">\(D\)</span>当在低维度训练达到期望的时候称维度<span
+class="math inline">\(d\)</span>​为该模型的 <strong>intrinsic
+dimension</strong></p>
+<p>作者在这里使用的是 <strong>Fastfood transform</strong> 变换（<a
+href="https://arxiv.org/abs/1408.3060">Le et al.2013</a>） <span
+class="math display">\[
+\theta^D=\theta^D_0+\theta^dM
+\\M=HG\Pi HB
+\]</span> 其中<span class="math inline">\(H\)</span>
+是<strong>Hadamard</strong> 矩阵，<span
+class="math inline">\(G\)</span>是随机正态分布的对角矩阵，<span
+class="math inline">\(B\)</span>是对角线元素为<span
+class="math inline">\(\pm1\)</span>的随机等概率对角矩阵，<span
+class="math inline">\(\Pi\)</span>是随机置换矩阵</p>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>语言模型</tag>
       </tags>
   </entry>
   <entry>
@@ -2175,70 +2239,6 @@ alt="image-20220106171235878" />
       </categories>
       <tags>
         <tag>文本纠错</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>语言模型文献</title>
-    <url>/2022/09/10/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%96%87%E7%8C%AE/</url>
-    <content><![CDATA[<p>整理语言模型相关文献</p>
-<span id="more"></span>
-<p>语言模型一般指用来衡量一句话符合语言习惯的概率，目前主流的是采用大规模数据参与训练的预训练模型BERT等</p>
-<h2
-id="intrinsic-dimensionality-explains-the-effec--tiveness-of-language-model-fine-tuning">1.《INTRINSIC
-DIMENSIONALITY EXPLAINS THE EFFEC- TIVENESS OF LANGUAGE MODEL
-FINE-TUNING》</h2>
-<p>Armen Aghajanyan, Luke Zettlemoyer, Sonal Gupta</p>
-<p>作者这篇论文是基于《MEASURING THE INTRINSIC DIMENSION OF OBJECTIVE
-LANDSCAPES》</p>
-<p>作者试图解释为什么目前主流的fine-tuned可以生效，作者认为可以通过
-<strong>intrinsic dimension</strong>
-（本征维度）来解释，作者研究发现常见的预训练模型都有很低的
-<strong>intrinsic dimension</strong>
-这意味着可以通过很小的维度参数重载实现和全参数fine-tuned一样的效果。</p>
-<p>作者在文章一开始提出了为什么预训练模型可以只用简单的梯度下降（relative
-vanilla gradient
-descent）就可以在小型数据集上经过微调起作用。作者认为可以通过对<strong>intrinsic
-dimension</strong> 的研究来寻找这个问题的答案，<strong>intrinsic
-dimension</strong>
-代表了为了解决目标函数所定义的问题所需的最小纬度。可以通过测量本征纬度知道需要多少自由参数来实现和fine-tuned一样的效果</p>
-<h3 id="intrinsic-dimension">intrinsic dimension</h3>
-<p><strong>intrinsic dimension</strong>
-被定义为目标函数达到满意的结果所需的最小参数数量（<a
-href="https://arxiv.org/abs/1804.08838">Li et al. 2018</a>）</p>
-<p>然而根据定义计算目标函数的 <strong>intrinsic dimension</strong>
-是十分困难的，因此作者采用了启发式计算方法来计算其上限</p>
-<p>定义 <span
-class="math inline">\(\theta^D=[\theta_0,\theta_1,\dots,\theta_m]\)</span>是一组描述模型<span
-class="math inline">\(f(\cdot,\theta)\)</span>维度为<span
-class="math inline">\(D\)</span>的参数，在训练的时候不是直接使用全参数<span
-class="math inline">\(\theta^D\)</span>去更新而是通过子空间去更新，再将更新的参数映射回<span
-class="math inline">\(D\)</span>​维度，其过程如下面公式所描述的： <span
-class="math display">\[
-\theta^D=\theta^D_0+P(\theta^d)
-\]</span></p>
-<p>其中<span
-class="math inline">\(P(\cdot)\)</span>是一个映射负责从低维<span
-class="math inline">\(d\)</span>映射到高维度<span
-class="math inline">\(D\)</span>当在低维度训练达到期望的时候称维度<span
-class="math inline">\(d\)</span>​为该模型的 <strong>intrinsic
-dimension</strong></p>
-<p>作者在这里使用的是 <strong>Fastfood transform</strong> 变换（<a
-href="https://arxiv.org/abs/1408.3060">Le et al.2013</a>） <span
-class="math display">\[
-\theta^D=\theta^D_0+\theta^dM
-\\M=HG\Pi HB
-\]</span> 其中<span class="math inline">\(H\)</span>
-是<strong>Hadamard</strong> 矩阵，<span
-class="math inline">\(G\)</span>是随机正态分布的对角矩阵，<span
-class="math inline">\(B\)</span>是对角线元素为<span
-class="math inline">\(\pm1\)</span>的随机等概率对角矩阵，<span
-class="math inline">\(\Pi\)</span>是随机置换矩阵</p>
-]]></content>
-      <categories>
-        <category>文献归纳</category>
-      </categories>
-      <tags>
-        <tag>语言模型</tag>
       </tags>
   </entry>
   <entry>
