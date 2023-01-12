@@ -678,6 +678,127 @@ International Conference on Machine Learning, F, 2017 [C]. PMLR.</p>
       </tags>
   </entry>
   <entry>
+    <title>Streaming ASR</title>
+    <url>/2022/09/10/Streaming%20ASR/</url>
+    <content><![CDATA[<p>整理流式ASR (Streaming ASR)相关文献 <span id="more"></span></p>
+<h2
+id="transformer-based-online-speech-recognition-with-decoder-end-adaptive-computation-steps">《TRANSFORMER-BASED
+ONLINE SPEECH RECOGNITION WITH DECODER-END ADAPTIVE COMPUTATION
+STEPS》</h2>
+<p>Mohan Li, Ca ̆ta ̆lin Zorila ̆ and Rama Doddipatla</p>
+<p>作者提出了 <strong>Decoder- end Adaptive Computation Steps,
+DACS</strong> 算法</p>
+<h3 id="introduction">1. INTRODUCTION</h3>
+<p>作者说明目前 End-to-End 模型普遍使用的都是 Transformer
+结构，但是该结构在面对 online speech recognition 时存在以下问题：</p>
+<ol type="1">
+<li>需要整个语句输入来计算全局的注意力</li>
+<li>每次都会对全部编码器输出执行
+normalisation，随着输出语句长度的增加，其计算成本和内存消耗越来越高</li>
+</ol>
+<p>因此需要一种新的方式来计算，以往尝试的方法有
+<strong>MoChA，sMoChA，MTA</strong>，这些方法都是基于
+<strong>Bernoulli</strong> 分布。 但是在 Transformer
+中由于使用的是多头注意力机制会出现，不同 head
+注意的时间点不同或者直到语音结束才触发的情况。</p>
+<p>作者提出的 <strong>DACS</strong> 算法则可以解决上述问题</p>
+<h3 id="transformer-for-online-asr">2. TRANSFORMER FOR ONLINE ASR</h3>
+<p>首先作者介绍了 baseline Transformer
+结构，随后介绍了几种基础的在线注意力计算方法包括
+<strong>HMA，MoChA，sMoChA，MTA</strong></p>
+<p>其中 <strong>sMoChA，MTA</strong> 都是在之前的模型上进一步简化</p>
+<h3
+id="online-transformer-asr-with-decoder-end-adaptive-computation-steps">3.
+ONLINE TRANSFORMER ASR WITH DECODER-END ADAPTIVE COMPUTATION STEPS</h3>
+<p>作者指出在线注意力机制的主要挑战在于延迟的控制，作者将解码的权重改为累积式的，达到阈值后触发，如过长时间未触发，则强制执行以控制延迟。</p>
+<p>作者是在 <strong>ACS</strong>
+算法的基础上改进而来，作者将其应用到编码器和解码器之间的相互注意力计算上</p>
+<p>对第 <span class="math inline">\(l\)</span> 解码层中的 <span
+class="math inline">\(head_h\)</span> 来说，energy
+的计算如下，在每个解码器时间步 <span class="math inline">\(i\)</span>
+对每个编码器时间步 <span class="math inline">\(j\)</span> 计算 <span
+class="math display">\[
+e_{i,j}=\frac{q_{i-1}k_j^T}{\sqrt{d_k}}
+\]</span> 随后计算概率 <span class="math inline">\(p_{i,j}\)</span>
+<span class="math display">\[
+p_{i,j}=Sigmoid(e_{i,j})
+\]</span> 从 <span class="math inline">\(j=1\)</span> 开始，一直计算
+<span class="math inline">\(P_{i,j}\)</span>
+的累积和直到其和大于1，但是也有可能出现 <span
+class="math inline">\(p_{i,:}\)</span>
+一直很小，此时就需要设置最大等待值 <span
+class="math inline">\(M\)</span>，以此来控制延迟</p>
+<p>因此总的来说区间长度 <span class="math inline">\(N_i\)</span>
+的计算为： <span class="math display">\[
+N_i=min\{min\{n:\sum_{j=1}^n p_{i,j}&gt;1\},M\}
+\]</span> 此时 <span class="math inline">\(c_i\)</span> 的计算变为：
+<span class="math display">\[
+c_i=\sum_{j=1}^{N_i}p_{i,j}v_j
+\]</span> 对于多头注意力机制来说，必须强制每个头的 <span
+class="math inline">\(N_i\)</span>
+相等，此处作者设置为全部头中的最大值</p>
+<p>接下来给出 Infernece 期间的伪代码：</p>
+<figure>
+<img src="img\image-20220614155611780.png"
+alt="image-20220614155611780" />
+<figcaption aria-hidden="true">image-20220614155611780</figcaption>
+</figure>
+<p>可以看到在infernece中每次计算的范围是 <span
+class="math inline">\(t_{i-1}\)</span> 到 <span
+class="math inline">\(t_{i-1}+M\)</span></p>
+<p>在训练过程中的计算则需要一个 MASK 矩阵来屏蔽剩余信息： <span
+class="math display">\[
+P=sigmod(\frac{QK^T}{\sqrt{d_k}})
+\\ M=ShiftRight(cumsum(P)&gt;1)
+\\ DACS(Q,K,V)=M⊙PV
+\]</span> 其中 <span class="math inline">\(M\)</span> 就是 MASK 矩阵</p>
+<h3 id="experiments">4. EXPERIMENTS</h3>
+<p>文章主体采用的是 chunk 形式，通过设置 <span
+class="math inline">\(N_c,N_l,N_r\)</span> 三个参数来控制 chunk
+大小，其中训练时只取中间 <span class="math inline">\(N_c\)</span>
+部分</p>
+<figure>
+<img src="img\image-20220614155703789.png"
+alt="image-20220614155703789" />
+<figcaption aria-hidden="true">image-20220614155703789</figcaption>
+</figure>
+<figure>
+<img src="img\image-20220614155247371.png"
+alt="image-20220614155247371" />
+<figcaption aria-hidden="true">image-20220614155247371</figcaption>
+</figure>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>Streaming ASR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PyTorch 单机多卡训练方法</title>
+    <url>/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/</url>
+    <content><![CDATA[<p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
+<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="构造数据">2.构造数据</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
+<h4 id="模型初始化">3.模型初始化</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="训练设置">4.训练设置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="保存模型">5.保存模型</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>DDP</tag>
+        <tag>Pytorch</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Transformer</title>
     <url>/2022/09/10/Transformer/</url>
     <content><![CDATA[<p>介绍Transformer基础知识</p>
@@ -762,29 +883,6 @@ LayerNorm(x)=\frac{x_{ij}-\mu_j}{\sqrt{\sigma^2+\epsilon}}
       </categories>
       <tags>
         <tag>Transformer</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PyTorch 单机多卡训练方法</title>
-    <url>/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/</url>
-    <content><![CDATA[<p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
-<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h4 id="构造数据">2.构造数据</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
-<h4 id="模型初始化">3.模型初始化</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="训练设置">4.训练设置</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="保存模型">5.保存模型</h4>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>教程</category>
-      </categories>
-      <tags>
-        <tag>DDP</tag>
-        <tag>Pytorch</tag>
       </tags>
   </entry>
   <entry>
@@ -1303,6 +1401,70 @@ hub</a> 上有许多开源的库，可以直接调用</p>
       </tags>
   </entry>
   <entry>
+    <title>在 M1 系列上使用GPU训练Pytorch</title>
+    <url>/2022/09/10/%E5%9C%A8%20M1%20%E7%B3%BB%E5%88%97%E4%B8%8A%E4%BD%BF%E7%94%A8GPU%E8%AE%AD%E7%BB%83Pytorch/</url>
+    <content><![CDATA[<p>最近 Pytorch 支持了 M1系列芯片的 GPU <span id="more"></span> 接下来将演示如何在
+MAC OS 上如何使用</p>
+<p>Step1</p>
+<p>安装 arm 版的 anconda，切记一定是 arm 版的</p>
+<p><img src="img/截屏2022-05-20%2001.47.56.png" /></p>
+<p>可以通过以下命令查看自己安装的版本是否正确</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> platform</span><br><span class="line"><span class="built_in">print</span>(platform.platform())</span><br></pre></td></tr></table></figure>
+<p>如果是 arm 版的会输出 macOS-12.3.1-arm64-arm-64bit，如果输出带有 X86
+则说明版本不对需要重新安装</p>
+<p>Step2</p>
+<p>安装最新预览版Pytorch</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">conda <span class="keyword">install</span> pytorch torchvision torchaudio -c pytorch-nightly</span><br></pre></td></tr></table></figure>
+<p>使用 conda 有一定概率无法安装到预览版，在安装的时候可以检查 Pytorch
+版本是否为 1.12.0.dev20220519</p>
+<p>如果使用 conda 无法安装到预览版，可以使用 pip3 安装</p>
+<figure class="highlight awk"><table><tr><td class="code"><pre><span class="line">pip3 install --pre torch torchvision torchaudio --extra-index-url https:<span class="regexp">//</span>download.pytorch.org<span class="regexp">/whl/</span>nightly/cpu</span><br></pre></td></tr></table></figure>
+<p>Step3</p>
+<p>到这一步就已经完成了环境的安装，可以测试是否支持 M1系列 GPU</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line">a = torch.rand(<span class="number">5</span>).to(<span class="string">&quot;mps&quot;</span>)</span><br><span class="line"><span class="comment"># tensor([1.2810e-02, 4.8380e-01, 4.0773e-01, 2.5867e-01, 6.4366e-01], device=&#x27;mps:0&#x27;)</span></span><br></pre></td></tr></table></figure>
+<p>如果没有报错就说明 OK 了</p>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>Pytorch</tag>
+        <tag>M1</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Warm-up在Transformer中的作用</title>
+    <url>/2022/09/10/Warm-up%E5%9C%A8Transformer%E4%B8%AD%E7%9A%84%E4%BD%9C%E7%94%A8/</url>
+    <content><![CDATA[<p>介绍Warm-up在Transformer中的作用</p>
+<span id="more"></span>
+<p>ICLR 2020</p>
+<p>文章开头指出了Warm-up在Transformer结构中有十分重要的地位，Transformer的最终性能对设定的最大学习率和迭代次数的值都会非常敏感</p>
+<p>作者发现其敏感性与Layer-Norm层的位置有密切联系，当Layer-Norm层在残差块中间时，靠近输出层部分的参数的梯度的期望将会很大。因此在没有Warm-up阶段时，直接对这些参数应用较大的学习率会导致模型优化不稳定</p>
+<p>因此作者提出了Transformer的一种变体结构即Pre-LN，其如图（b）所示
+，在Pre-LN模型中Layer-Norm层被放到了模型的残差连接里面，在这种结构下可以不使用Warm-up方法</p>
+<figure>
+<img src="img/image-20210928160317548.png"
+alt="image-20210928160317548" />
+<figcaption aria-hidden="true">image-20210928160317548</figcaption>
+</figure>
+<p>首先作者对不同优化器（Adam，SGD）进行了测试，在测试中可以看出，不使用Warm-up会导致最后性能较差，且Warm-up的步长<span
+class="math inline">\(T_{warmup}\)</span>也是很重要的超参数，同样会影响最后的性能</p>
+<figure>
+<img src="img/image-20210928193823009.png"
+alt="image-20210928193823009" />
+<figcaption aria-hidden="true">image-20210928193823009</figcaption>
+</figure>
+<p>在对比实验中同样可以发现，Warm-up不仅仅对Adam有效，也对SGD优化器有效</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Transformer</tag>
+        <tag>Warm-up</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Visualizing the Loss Landscape of Neural Nets</title>
     <url>/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/</url>
     <content><![CDATA[<p>Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein</p>
@@ -1440,303 +1602,6 @@ alt="image-20221103152828904" />
       <tags>
         <tag>Loss Landscape</tag>
         <tag>可视化</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Streaming ASR</title>
-    <url>/2022/09/10/Streaming%20ASR/</url>
-    <content><![CDATA[<p>整理流式ASR (Streaming ASR)相关文献 <span id="more"></span></p>
-<h2
-id="transformer-based-online-speech-recognition-with-decoder-end-adaptive-computation-steps">《TRANSFORMER-BASED
-ONLINE SPEECH RECOGNITION WITH DECODER-END ADAPTIVE COMPUTATION
-STEPS》</h2>
-<p>Mohan Li, Ca ̆ta ̆lin Zorila ̆ and Rama Doddipatla</p>
-<p>作者提出了 <strong>Decoder- end Adaptive Computation Steps,
-DACS</strong> 算法</p>
-<h3 id="introduction">1. INTRODUCTION</h3>
-<p>作者说明目前 End-to-End 模型普遍使用的都是 Transformer
-结构，但是该结构在面对 online speech recognition 时存在以下问题：</p>
-<ol type="1">
-<li>需要整个语句输入来计算全局的注意力</li>
-<li>每次都会对全部编码器输出执行
-normalisation，随着输出语句长度的增加，其计算成本和内存消耗越来越高</li>
-</ol>
-<p>因此需要一种新的方式来计算，以往尝试的方法有
-<strong>MoChA，sMoChA，MTA</strong>，这些方法都是基于
-<strong>Bernoulli</strong> 分布。 但是在 Transformer
-中由于使用的是多头注意力机制会出现，不同 head
-注意的时间点不同或者直到语音结束才触发的情况。</p>
-<p>作者提出的 <strong>DACS</strong> 算法则可以解决上述问题</p>
-<h3 id="transformer-for-online-asr">2. TRANSFORMER FOR ONLINE ASR</h3>
-<p>首先作者介绍了 baseline Transformer
-结构，随后介绍了几种基础的在线注意力计算方法包括
-<strong>HMA，MoChA，sMoChA，MTA</strong></p>
-<p>其中 <strong>sMoChA，MTA</strong> 都是在之前的模型上进一步简化</p>
-<h3
-id="online-transformer-asr-with-decoder-end-adaptive-computation-steps">3.
-ONLINE TRANSFORMER ASR WITH DECODER-END ADAPTIVE COMPUTATION STEPS</h3>
-<p>作者指出在线注意力机制的主要挑战在于延迟的控制，作者将解码的权重改为累积式的，达到阈值后触发，如过长时间未触发，则强制执行以控制延迟。</p>
-<p>作者是在 <strong>ACS</strong>
-算法的基础上改进而来，作者将其应用到编码器和解码器之间的相互注意力计算上</p>
-<p>对第 <span class="math inline">\(l\)</span> 解码层中的 <span
-class="math inline">\(head_h\)</span> 来说，energy
-的计算如下，在每个解码器时间步 <span class="math inline">\(i\)</span>
-对每个编码器时间步 <span class="math inline">\(j\)</span> 计算 <span
-class="math display">\[
-e_{i,j}=\frac{q_{i-1}k_j^T}{\sqrt{d_k}}
-\]</span> 随后计算概率 <span class="math inline">\(p_{i,j}\)</span>
-<span class="math display">\[
-p_{i,j}=Sigmoid(e_{i,j})
-\]</span> 从 <span class="math inline">\(j=1\)</span> 开始，一直计算
-<span class="math inline">\(P_{i,j}\)</span>
-的累积和直到其和大于1，但是也有可能出现 <span
-class="math inline">\(p_{i,:}\)</span>
-一直很小，此时就需要设置最大等待值 <span
-class="math inline">\(M\)</span>，以此来控制延迟</p>
-<p>因此总的来说区间长度 <span class="math inline">\(N_i\)</span>
-的计算为： <span class="math display">\[
-N_i=min\{min\{n:\sum_{j=1}^n p_{i,j}&gt;1\},M\}
-\]</span> 此时 <span class="math inline">\(c_i\)</span> 的计算变为：
-<span class="math display">\[
-c_i=\sum_{j=1}^{N_i}p_{i,j}v_j
-\]</span> 对于多头注意力机制来说，必须强制每个头的 <span
-class="math inline">\(N_i\)</span>
-相等，此处作者设置为全部头中的最大值</p>
-<p>接下来给出 Infernece 期间的伪代码：</p>
-<figure>
-<img src="img\image-20220614155611780.png"
-alt="image-20220614155611780" />
-<figcaption aria-hidden="true">image-20220614155611780</figcaption>
-</figure>
-<p>可以看到在infernece中每次计算的范围是 <span
-class="math inline">\(t_{i-1}\)</span> 到 <span
-class="math inline">\(t_{i-1}+M\)</span></p>
-<p>在训练过程中的计算则需要一个 MASK 矩阵来屏蔽剩余信息： <span
-class="math display">\[
-P=sigmod(\frac{QK^T}{\sqrt{d_k}})
-\\ M=ShiftRight(cumsum(P)&gt;1)
-\\ DACS(Q,K,V)=M⊙PV
-\]</span> 其中 <span class="math inline">\(M\)</span> 就是 MASK 矩阵</p>
-<h3 id="experiments">4. EXPERIMENTS</h3>
-<p>文章主体采用的是 chunk 形式，通过设置 <span
-class="math inline">\(N_c,N_l,N_r\)</span> 三个参数来控制 chunk
-大小，其中训练时只取中间 <span class="math inline">\(N_c\)</span>
-部分</p>
-<figure>
-<img src="img\image-20220614155703789.png"
-alt="image-20220614155703789" />
-<figcaption aria-hidden="true">image-20220614155703789</figcaption>
-</figure>
-<figure>
-<img src="img\image-20220614155247371.png"
-alt="image-20220614155247371" />
-<figcaption aria-hidden="true">image-20220614155247371</figcaption>
-</figure>
-]]></content>
-      <categories>
-        <category>文献归纳</category>
-      </categories>
-      <tags>
-        <tag>Streaming ASR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>在 M1 系列上使用GPU训练Pytorch</title>
-    <url>/2022/09/10/%E5%9C%A8%20M1%20%E7%B3%BB%E5%88%97%E4%B8%8A%E4%BD%BF%E7%94%A8GPU%E8%AE%AD%E7%BB%83Pytorch/</url>
-    <content><![CDATA[<p>最近 Pytorch 支持了 M1系列芯片的 GPU <span id="more"></span> 接下来将演示如何在
-MAC OS 上如何使用</p>
-<p>Step1</p>
-<p>安装 arm 版的 anconda，切记一定是 arm 版的</p>
-<p><img src="img/截屏2022-05-20%2001.47.56.png" /></p>
-<p>可以通过以下命令查看自己安装的版本是否正确</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> platform</span><br><span class="line"><span class="built_in">print</span>(platform.platform())</span><br></pre></td></tr></table></figure>
-<p>如果是 arm 版的会输出 macOS-12.3.1-arm64-arm-64bit，如果输出带有 X86
-则说明版本不对需要重新安装</p>
-<p>Step2</p>
-<p>安装最新预览版Pytorch</p>
-<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">conda <span class="keyword">install</span> pytorch torchvision torchaudio -c pytorch-nightly</span><br></pre></td></tr></table></figure>
-<p>使用 conda 有一定概率无法安装到预览版，在安装的时候可以检查 Pytorch
-版本是否为 1.12.0.dev20220519</p>
-<p>如果使用 conda 无法安装到预览版，可以使用 pip3 安装</p>
-<figure class="highlight awk"><table><tr><td class="code"><pre><span class="line">pip3 install --pre torch torchvision torchaudio --extra-index-url https:<span class="regexp">//</span>download.pytorch.org<span class="regexp">/whl/</span>nightly/cpu</span><br></pre></td></tr></table></figure>
-<p>Step3</p>
-<p>到这一步就已经完成了环境的安装，可以测试是否支持 M1系列 GPU</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line">a = torch.rand(<span class="number">5</span>).to(<span class="string">&quot;mps&quot;</span>)</span><br><span class="line"><span class="comment"># tensor([1.2810e-02, 4.8380e-01, 4.0773e-01, 2.5867e-01, 6.4366e-01], device=&#x27;mps:0&#x27;)</span></span><br></pre></td></tr></table></figure>
-<p>如果没有报错就说明 OK 了</p>
-]]></content>
-      <categories>
-        <category>教程</category>
-      </categories>
-      <tags>
-        <tag>Pytorch</tag>
-        <tag>M1</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>深度学习模型移植嵌入式设备教程</title>
-    <url>/2023/01/09/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E6%95%99%E7%A8%8B/</url>
-    <content><![CDATA[<p>简单介绍了深度学习模型移植嵌入式设备的方法 <span id="more"></span></p>
-<p>这里以ASR模型和RK3588S为例，使用的推理框架是ONNXRuntime，其中交叉编译是在Ubutu22.04上完成的</p>
-<p>目前主流的推理框架包括NCNN，MNN，TNN，ONNXRuntime</p>
-<p>其中NCNN，TNN，MNN三者均针对嵌入式进行了优化，其在推理速度上有一定的优势，但是其支持的算子没有ONNXRuntime那么全面，因此可能转换时出现错误，此时就需要修改模型或者自行针对缺少的算子进行实现，因此这里选择ONNXRuntime</p>
-<p>如果你的模型是很标准的CNN结构如Resnet，VGG等或者在其上修改并不多，那么选择NCNN/TNN/MNN即可</p>
-<h2 id="步骤">步骤</h2>
-<h4 id="step1">Step1:</h4>
-<p>准备训练好的模型，利用Pytorch自带的onnx转换工具将其转为onnx</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> onnx</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">input_sample = torch.randn((<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">1000</span>))	<span class="comment"># 模型输入</span></span><br><span class="line">model.to_onnx(<span class="string">&quot;model.onnx&quot;</span>, 									<span class="comment"># 保存名称</span></span><br><span class="line">              input_sample,										<span class="comment"># 输入</span></span><br><span class="line">              export_params=<span class="literal">True</span>,							<span class="comment"># 常量折叠</span></span><br><span class="line">              opset_version=<span class="number">13</span>,								<span class="comment"># 算子版本</span></span><br><span class="line">              input_names=[<span class="string">&quot;input&quot;</span>],					<span class="comment"># 输入名称</span></span><br><span class="line">              output_names=[<span class="string">&quot;output&quot;</span>],				<span class="comment"># 输出名称</span></span><br><span class="line">              dynamic_axes=&#123;									<span class="comment"># 如果输入的长度不确定，则需要在这里指定</span></span><br><span class="line">              	<span class="string">&quot;input&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, <span class="number">3</span>: <span class="string">&quot;seq_len&quot;</span>&#125;,</span><br><span class="line">               	<span class="string">&quot;output&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, &#125;,</span><br><span class="line">              &#125;)</span><br><span class="line"><span class="comment"># 转换完以后可以使用下列语句对ONNX模型进行检查</span></span><br><span class="line">model = onnx.load(<span class="string">&quot;model.onnx&quot;</span>)</span><br><span class="line">onnx.checker.check_model(model)</span><br></pre></td></tr></table></figure>
-<p>如果你的模型不是很标准的结构，比如有许多自定义的结构，那么这一步有可能会报错，此时就需要去修改模型以确保能被转换为ONNX模型</p>
-<p>同时ONNX模型也是很多其他推理框架的中间模型，此时可以通过https://convertmodel.com进行转换</p>
-<h4 id="step2">Step2:</h4>
-<p>准备好对应的交叉编译工具，由于我们的目标是64位的，因此这里使用的是<a
-href="https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads">aarch64-none-linux-gnu</a></p>
-<p>下载交叉编译工具链解压后将其放到任意位置，随后编辑.bashrc文件</p>
-<p>在文件最后加上</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=<span class="string">&quot;your toolchain path:<span class="variable">$PATH</span>&quot;</span></span><br></pre></td></tr></table></figure>
-<p>随后新开一个端口，或者使用source .bashrc刷新配置</p>
-<p>之后检查交叉编译工具链是否正确</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">aarch64-none-linux-gnu-gcc -v</span><br></pre></td></tr></table></figure>
-<p>如果出现了对应的版本号则说明工具链安装正确</p>
-<h4 id="step3">Step3:</h4>
-<p>下载<a
-href="https://github.com/microsoft/onnxruntime/releases">ONNXRuntime</a>，这里下载对应的版本就行（此时为了方便调试，可以同时下载x64和aarch64两种）</p>
-<p>下载后就得到了ONNXRuntime的动态库，同时如果官方给出的里面没有你所需要的版本，则需要下载源码自行编译</p>
-<p>将下载好的文件解压，并放置到工程目录下方便后续使用</p>
-<h4 id="step4">Step4:</h4>
-<p>编写C++程序以实现对ONNX模型的调用，这里给出C++程序的基本框架，该框架只对ONNX模型进行了测试，以便确定能跑通</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;	<span class="comment">// 创建环境</span></span><br><span class="line">    Ort::SessionOptions session_options;					<span class="comment">// 创建配置</span></span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);			<span class="comment">// 设置线程数</span></span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED); <span class="comment">// 设置图优化等级，这里是EXTENDED等级</span></span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;	<span class="comment">// 模型名称</span></span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;		<span class="comment">//创建session</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">   	std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;			<span class="comment">// 输入名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;		<span class="comment">// 输出名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">250</span>&#125;;		<span class="comment">// 输入数据形状</span></span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*<span class="number">250</span>;	<span class="comment">// 输入数据总大小</span></span><br><span class="line">    <span class="function">vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;		<span class="comment">// 构建输入数据，注意这里应该是一维vector</span></span><br><span class="line">		<span class="comment">// 给输入数据初始值  </span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>;i&lt;input_tensor_size;i++)&#123;</span><br><span class="line">        input_tensor_values[i] = (<span class="type">float</span>) i / (input_tensor_size + <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);	<span class="comment">// 配置存储</span></span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 创建tensor，注意模型的输入必须是tensor而不是vector</span></span><br><span class="line">  	<span class="comment">// 第一个参数是memory_info，第二个是输入数据指针，第三个是输入数据大小，第四个是输入数据形状指针，第五个是输入数据形状大小</span></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>()); <span class="comment">// 断言</span></span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);	<span class="comment">// 执行推理</span></span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;(); <span class="comment">// 转换输出，由于我的pytorch模型输出的就是long int格式，如果输出的是浮点，这里应该是float</span></span><br><span class="line">		</span><br><span class="line">  	<span class="comment">// 打印结果</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>编写完C++后，由于我使用的是Clion作为IDE，因此还需要编写CMakeList.txt</p>
-<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">include_directories</span>(your onnxruntime path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">link_directories</span>(your onnxruntime path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>之后就可以在本地编译，进行测试</p>
-<p>在本地测试通过后还需要进行交叉编译到目标平台</p>
-<p>此时的CMakeList.txt需要进行修改，这里为了方便进行测试所以设置了条件编译，此时</p>
-<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CROSS_COMPILE <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(CROSS_COMPILE)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_SYSTEM_NAME Linux)</span><br><span class="line">    <span class="keyword">set</span> (CMAKE_SYSTEM_PROCESSOR aarch64)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">set</span>(CMAKE_C_COMPILER aarch64-none-linux-gnu-gcc)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_CXX_COMPILER aarch64-none-linux-gnu-g++)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_aarch64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_aarch64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">else</span>()</span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_x64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_x64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">endif</span>()</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br></pre></td></tr></table></figure>
-<p>同时由于我在Clion中设置交叉编译失败了，因此需要手动编译，在工程目录下执行：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">cmake ..</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
-<p>随后便可以得到编译后的程序onnx_test，将其传到目标板子上，同时还需要将onnxruntime_aarch64/lib下的文件，传输到目标开发版的/usr/lib目录下</p>
-<p>在目标板子上新建test文件夹，其下有可执行文件onnx_test和ONNX模型model.onnx</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x onnx_test	<span class="comment"># 赋予可执行权限</span></span><br><span class="line">./onnx_test					<span class="comment"># 执行</span></span><br></pre></td></tr></table></figure>
-<p>在看到输出结果后，就说明移植成功</p>
-<h4 id="step5">Step5:</h4>
-<p>在针对ONNX模型的移植测试通过后，需要进一步完善程序，才能实现ASR</p>
-<p>由于我们的ASR模型输入的数据是音频的Fbank特征，因此还需要移植Fbank特征提取程序，这里我移植了WeNet的程序</p>
-<p>同时由于python程序中对音频和Fbank特征进行了归一化和标准化，因此也需要对其进行实现</p>
-<p>不同的深度学习模型这一部分应该有很大的区别，这里给出最后的主程序以供参考</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Created by qyk on 23-1-8.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;wav.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;fbank.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    wav::WavReader reader;		<span class="comment">// 创建reader</span></span><br><span class="line"></span><br><span class="line">    wenet::FeatureConfig config = wenet::<span class="built_in">FeatureConfig</span>(<span class="number">80</span>, <span class="number">16000</span>);	<span class="comment">// 创建Fbank参数，80维mel，采样率16k</span></span><br><span class="line"></span><br><span class="line">    <span class="function">wenet::Fbank <span class="title">fbank_</span><span class="params">(config.num_bins, config.sample_rate, config.frame_length,</span></span></span><br><span class="line"><span class="params"><span class="function">                        config.frame_shift)</span></span>;	<span class="comment">//创建fabnk提取器</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    reader.<span class="built_in">Open</span>(<span class="string">&quot;1.wav&quot;</span>);</span><br><span class="line">    <span class="comment">//读取wav数据</span></span><br><span class="line">    <span class="type">const</span> <span class="type">float</span>* data=reader.<span class="built_in">data</span>();</span><br><span class="line">    <span class="type">int</span> number_samples = reader.<span class="built_in">num_samples</span>();</span><br><span class="line">    <span class="type">int</span> sample_rate = reader.<span class="built_in">sample_rate</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;wav time:&quot;</span> &lt;&lt; (<span class="type">float</span>)number_samples / sample_rate &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    <span class="comment">//wav归一化</span></span><br><span class="line">    reader.<span class="built_in">normalized</span>();</span><br><span class="line">		</span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; feats;	<span class="comment">// 创建Fbank特征vector</span></span><br><span class="line">    std::vector&lt;<span class="type">float</span>&gt; waves;								<span class="comment">// 创建音频vector</span></span><br><span class="line">    waves.<span class="built_in">insert</span>(waves.<span class="built_in">end</span>(), data, data + number_samples);	<span class="comment">// 将音频数据写入其中</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//计算Fbank, 返回Fbank特征帧数, feats[frame_number, fbank_dim]</span></span><br><span class="line">    <span class="type">int</span> frame_number = fbank_.<span class="built_in">Compute</span>(waves, &amp;feats);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 对feats进行转置，得到feats_T</span></span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; <span class="built_in">feats_T</span>(feats[<span class="number">0</span>].<span class="built_in">size</span>());</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;frame_number; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats[<span class="number">0</span>].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[j].<span class="built_in">push_back</span>(feats[i][j]);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//Fbank标准化</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;<span class="number">80</span>; ++i) &#123;</span><br><span class="line">        <span class="type">double</span> sum = std::<span class="built_in">accumulate</span>(std::<span class="built_in">begin</span>(feats_T[i]), std::<span class="built_in">end</span>(feats_T[i]), <span class="number">0.0</span>);</span><br><span class="line">        <span class="type">double</span> mean = sum / feats_T[i].<span class="built_in">size</span>();</span><br><span class="line">        <span class="type">double</span> std = <span class="number">0.0</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            std = std + <span class="built_in">pow</span>(feats_T[i][j]-mean,<span class="number">2</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        std = <span class="built_in">sqrt</span>(std/feats_T[i].<span class="built_in">size</span>()<span class="number">-1</span>);</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[i][j] = (feats_T[i][j] - mean)/(<span class="number">1e-10</span>+std);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;</span><br><span class="line">    Ort::SessionOptions session_options;</span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);</span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);</span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;</span><br><span class="line"><span class="comment">//    Ort::AllocatorWithDefaultOptions allocator;</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, frame_number&#125;;</span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*frame_number;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;</span><br><span class="line">    <span class="type">size_t</span> count=<span class="number">0</span>;</span><br><span class="line">  	<span class="comment">// 创建输入vector，将feast_T转为一维向量，以便后面构建tensor</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>; i&lt;<span class="number">80</span>; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">size_t</span> j = <span class="number">0</span>; j&lt;frame_number; j++)&#123;</span><br><span class="line">            input_tensor_values[count] = feats_T[i][j];</span><br><span class="line">            count++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);</span><br><span class="line"></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>同时由于移植的Fbank提取是多个文件在一个文件夹中，因此也需要在该文件夹中新建CMakeList.txt，并填写以下内容</p>
-<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">add_library</span>(utils STATIC wav.cpp fft.cpp fbank.cpp)</span><br></pre></td></tr></table></figure>
-<p>同时在项目主文件夹中的CMakeList.txt也需要加上</p>
-<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">include_directories</span>(./ ./utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(main utils onnxruntime)</span><br></pre></td></tr></table></figure>
-<p>此后便可编译运行，而交叉编译部分第4步差不多</p>
-<p>至此移植深度学习模型至嵌入式上也就完成了</p>
-<h2 id="参考">参考</h2>
-<ol type="1">
-<li><a href="https://github.com/wenet-e2e/wenet">WeNet</a></li>
-<li><a href="https://onnxruntime.ai">ONNXRuntime</a></li>
-</ol>
-]]></content>
-      <categories>
-        <category>教程</category>
-      </categories>
-      <tags>
-        <tag>ONNXRuntime</tag>
-        <tag>嵌入式</tag>
-        <tag>C++</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Warm-up在Transformer中的作用</title>
-    <url>/2022/09/10/Warm-up%E5%9C%A8Transformer%E4%B8%AD%E7%9A%84%E4%BD%9C%E7%94%A8/</url>
-    <content><![CDATA[<p>介绍Warm-up在Transformer中的作用</p>
-<span id="more"></span>
-<p>ICLR 2020</p>
-<p>文章开头指出了Warm-up在Transformer结构中有十分重要的地位，Transformer的最终性能对设定的最大学习率和迭代次数的值都会非常敏感</p>
-<p>作者发现其敏感性与Layer-Norm层的位置有密切联系，当Layer-Norm层在残差块中间时，靠近输出层部分的参数的梯度的期望将会很大。因此在没有Warm-up阶段时，直接对这些参数应用较大的学习率会导致模型优化不稳定</p>
-<p>因此作者提出了Transformer的一种变体结构即Pre-LN，其如图（b）所示
-，在Pre-LN模型中Layer-Norm层被放到了模型的残差连接里面，在这种结构下可以不使用Warm-up方法</p>
-<figure>
-<img src="img/image-20210928160317548.png"
-alt="image-20210928160317548" />
-<figcaption aria-hidden="true">image-20210928160317548</figcaption>
-</figure>
-<p>首先作者对不同优化器（Adam，SGD）进行了测试，在测试中可以看出，不使用Warm-up会导致最后性能较差，且Warm-up的步长<span
-class="math inline">\(T_{warmup}\)</span>也是很重要的超参数，同样会影响最后的性能</p>
-<figure>
-<img src="img/image-20210928193823009.png"
-alt="image-20210928193823009" />
-<figcaption aria-hidden="true">image-20210928193823009</figcaption>
-</figure>
-<p>在对比实验中同样可以发现，Warm-up不仅仅对Adam有效，也对SGD优化器有效</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>Transformer</tag>
-        <tag>Warm-up</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>语言模型文献</title>
-    <url>/2022/09/10/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%96%87%E7%8C%AE/</url>
-    <content><![CDATA[<p>整理语言模型相关文献</p>
-<span id="more"></span>
-<p>语言模型一般指用来衡量一句话符合语言习惯的概率，目前主流的是采用大规模数据参与训练的预训练模型BERT等</p>
-<h2
-id="intrinsic-dimensionality-explains-the-effec--tiveness-of-language-model-fine-tuning">1.《INTRINSIC
-DIMENSIONALITY EXPLAINS THE EFFEC- TIVENESS OF LANGUAGE MODEL
-FINE-TUNING》</h2>
-<p>Armen Aghajanyan, Luke Zettlemoyer, Sonal Gupta</p>
-<p>作者这篇论文是基于《MEASURING THE INTRINSIC DIMENSION OF OBJECTIVE
-LANDSCAPES》</p>
-<p>作者试图解释为什么目前主流的fine-tuned可以生效，作者认为可以通过
-<strong>intrinsic dimension</strong>
-（本征维度）来解释，作者研究发现常见的预训练模型都有很低的
-<strong>intrinsic dimension</strong>
-这意味着可以通过很小的维度参数重载实现和全参数fine-tuned一样的效果。</p>
-<p>作者在文章一开始提出了为什么预训练模型可以只用简单的梯度下降（relative
-vanilla gradient
-descent）就可以在小型数据集上经过微调起作用。作者认为可以通过对<strong>intrinsic
-dimension</strong> 的研究来寻找这个问题的答案，<strong>intrinsic
-dimension</strong>
-代表了为了解决目标函数所定义的问题所需的最小纬度。可以通过测量本征纬度知道需要多少自由参数来实现和fine-tuned一样的效果</p>
-<h3 id="intrinsic-dimension">intrinsic dimension</h3>
-<p><strong>intrinsic dimension</strong>
-被定义为目标函数达到满意的结果所需的最小参数数量（<a
-href="https://arxiv.org/abs/1804.08838">Li et al. 2018</a>）</p>
-<p>然而根据定义计算目标函数的 <strong>intrinsic dimension</strong>
-是十分困难的，因此作者采用了启发式计算方法来计算其上限</p>
-<p>定义 <span
-class="math inline">\(\theta^D=[\theta_0,\theta_1,\dots,\theta_m]\)</span>是一组描述模型<span
-class="math inline">\(f(\cdot,\theta)\)</span>维度为<span
-class="math inline">\(D\)</span>的参数，在训练的时候不是直接使用全参数<span
-class="math inline">\(\theta^D\)</span>去更新而是通过子空间去更新，再将更新的参数映射回<span
-class="math inline">\(D\)</span>​维度，其过程如下面公式所描述的： <span
-class="math display">\[
-\theta^D=\theta^D_0+P(\theta^d)
-\]</span></p>
-<p>其中<span
-class="math inline">\(P(\cdot)\)</span>是一个映射负责从低维<span
-class="math inline">\(d\)</span>映射到高维度<span
-class="math inline">\(D\)</span>当在低维度训练达到期望的时候称维度<span
-class="math inline">\(d\)</span>​为该模型的 <strong>intrinsic
-dimension</strong></p>
-<p>作者在这里使用的是 <strong>Fastfood transform</strong> 变换（<a
-href="https://arxiv.org/abs/1408.3060">Le et al.2013</a>） <span
-class="math display">\[
-\theta^D=\theta^D_0+\theta^dM
-\\M=HG\Pi HB
-\]</span> 其中<span class="math inline">\(H\)</span>
-是<strong>Hadamard</strong> 矩阵，<span
-class="math inline">\(G\)</span>是随机正态分布的对角矩阵，<span
-class="math inline">\(B\)</span>是对角线元素为<span
-class="math inline">\(\pm1\)</span>的随机等概率对角矩阵，<span
-class="math inline">\(\Pi\)</span>是随机置换矩阵</p>
-]]></content>
-      <categories>
-        <category>文献归纳</category>
-      </categories>
-      <tags>
-        <tag>语言模型</tag>
       </tags>
   </entry>
   <entry>
@@ -2504,6 +2369,141 @@ class="math display">\[
       </categories>
       <tags>
         <tag>语音信号处理</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>语言模型文献</title>
+    <url>/2022/09/10/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理语言模型相关文献</p>
+<span id="more"></span>
+<p>语言模型一般指用来衡量一句话符合语言习惯的概率，目前主流的是采用大规模数据参与训练的预训练模型BERT等</p>
+<h2
+id="intrinsic-dimensionality-explains-the-effec--tiveness-of-language-model-fine-tuning">1.《INTRINSIC
+DIMENSIONALITY EXPLAINS THE EFFEC- TIVENESS OF LANGUAGE MODEL
+FINE-TUNING》</h2>
+<p>Armen Aghajanyan, Luke Zettlemoyer, Sonal Gupta</p>
+<p>作者这篇论文是基于《MEASURING THE INTRINSIC DIMENSION OF OBJECTIVE
+LANDSCAPES》</p>
+<p>作者试图解释为什么目前主流的fine-tuned可以生效，作者认为可以通过
+<strong>intrinsic dimension</strong>
+（本征维度）来解释，作者研究发现常见的预训练模型都有很低的
+<strong>intrinsic dimension</strong>
+这意味着可以通过很小的维度参数重载实现和全参数fine-tuned一样的效果。</p>
+<p>作者在文章一开始提出了为什么预训练模型可以只用简单的梯度下降（relative
+vanilla gradient
+descent）就可以在小型数据集上经过微调起作用。作者认为可以通过对<strong>intrinsic
+dimension</strong> 的研究来寻找这个问题的答案，<strong>intrinsic
+dimension</strong>
+代表了为了解决目标函数所定义的问题所需的最小纬度。可以通过测量本征纬度知道需要多少自由参数来实现和fine-tuned一样的效果</p>
+<h3 id="intrinsic-dimension">intrinsic dimension</h3>
+<p><strong>intrinsic dimension</strong>
+被定义为目标函数达到满意的结果所需的最小参数数量（<a
+href="https://arxiv.org/abs/1804.08838">Li et al. 2018</a>）</p>
+<p>然而根据定义计算目标函数的 <strong>intrinsic dimension</strong>
+是十分困难的，因此作者采用了启发式计算方法来计算其上限</p>
+<p>定义 <span
+class="math inline">\(\theta^D=[\theta_0,\theta_1,\dots,\theta_m]\)</span>是一组描述模型<span
+class="math inline">\(f(\cdot,\theta)\)</span>维度为<span
+class="math inline">\(D\)</span>的参数，在训练的时候不是直接使用全参数<span
+class="math inline">\(\theta^D\)</span>去更新而是通过子空间去更新，再将更新的参数映射回<span
+class="math inline">\(D\)</span>​维度，其过程如下面公式所描述的： <span
+class="math display">\[
+\theta^D=\theta^D_0+P(\theta^d)
+\]</span></p>
+<p>其中<span
+class="math inline">\(P(\cdot)\)</span>是一个映射负责从低维<span
+class="math inline">\(d\)</span>映射到高维度<span
+class="math inline">\(D\)</span>当在低维度训练达到期望的时候称维度<span
+class="math inline">\(d\)</span>​为该模型的 <strong>intrinsic
+dimension</strong></p>
+<p>作者在这里使用的是 <strong>Fastfood transform</strong> 变换（<a
+href="https://arxiv.org/abs/1408.3060">Le et al.2013</a>） <span
+class="math display">\[
+\theta^D=\theta^D_0+\theta^dM
+\\M=HG\Pi HB
+\]</span> 其中<span class="math inline">\(H\)</span>
+是<strong>Hadamard</strong> 矩阵，<span
+class="math inline">\(G\)</span>是随机正态分布的对角矩阵，<span
+class="math inline">\(B\)</span>是对角线元素为<span
+class="math inline">\(\pm1\)</span>的随机等概率对角矩阵，<span
+class="math inline">\(\Pi\)</span>是随机置换矩阵</p>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>语言模型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>深度学习模型移植嵌入式设备教程</title>
+    <url>/2023/01/09/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E6%95%99%E7%A8%8B/</url>
+    <content><![CDATA[<p>简单介绍了深度学习模型移植嵌入式设备的方法 <span id="more"></span></p>
+<p>这里以ASR模型和RK3588S为例，使用的推理框架是ONNXRuntime，其中交叉编译是在Ubutu22.04上完成的</p>
+<p>目前主流的推理框架包括NCNN，MNN，TNN，ONNXRuntime</p>
+<p>其中NCNN，TNN，MNN三者均针对嵌入式进行了优化，其在推理速度上有一定的优势，但是其支持的算子没有ONNXRuntime那么全面，因此可能转换时出现错误，此时就需要修改模型或者自行针对缺少的算子进行实现，因此这里选择ONNXRuntime</p>
+<p>如果你的模型是很标准的CNN结构如Resnet，VGG等或者在其上修改并不多，那么选择NCNN/TNN/MNN即可</p>
+<h2 id="步骤">步骤</h2>
+<h4 id="step1">Step1:</h4>
+<p>准备训练好的模型，利用Pytorch自带的onnx转换工具将其转为onnx</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> onnx</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">input_sample = torch.randn((<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">1000</span>))	<span class="comment"># 模型输入</span></span><br><span class="line">model.to_onnx(<span class="string">&quot;model.onnx&quot;</span>, 									<span class="comment"># 保存名称</span></span><br><span class="line">              input_sample,										<span class="comment"># 输入</span></span><br><span class="line">              export_params=<span class="literal">True</span>,							<span class="comment"># 常量折叠</span></span><br><span class="line">              opset_version=<span class="number">13</span>,								<span class="comment"># 算子版本</span></span><br><span class="line">              input_names=[<span class="string">&quot;input&quot;</span>],					<span class="comment"># 输入名称</span></span><br><span class="line">              output_names=[<span class="string">&quot;output&quot;</span>],				<span class="comment"># 输出名称</span></span><br><span class="line">              dynamic_axes=&#123;									<span class="comment"># 如果输入的长度不确定，则需要在这里指定</span></span><br><span class="line">              	<span class="string">&quot;input&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, <span class="number">3</span>: <span class="string">&quot;seq_len&quot;</span>&#125;,</span><br><span class="line">               	<span class="string">&quot;output&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, &#125;,</span><br><span class="line">              &#125;)</span><br><span class="line"><span class="comment"># 转换完以后可以使用下列语句对ONNX模型进行检查</span></span><br><span class="line">model = onnx.load(<span class="string">&quot;model.onnx&quot;</span>)</span><br><span class="line">onnx.checker.check_model(model)</span><br></pre></td></tr></table></figure>
+<p>如果你的模型不是很标准的结构，比如有许多自定义的结构，那么这一步有可能会报错，此时就需要去修改模型以确保能被转换为ONNX模型</p>
+<p>同时ONNX模型也是很多其他推理框架的中间模型，此时可以通过https://convertmodel.com进行转换</p>
+<h4 id="step2">Step2:</h4>
+<p>准备好对应的交叉编译工具，由于我们的目标是64位的，因此这里使用的是<a
+href="https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads">aarch64-none-linux-gnu</a></p>
+<p>下载交叉编译工具链解压后将其放到任意位置，随后编辑.bashrc文件</p>
+<p>在文件最后加上</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=<span class="string">&quot;your toolchain path:<span class="variable">$PATH</span>&quot;</span></span><br></pre></td></tr></table></figure>
+<p>随后新开一个端口，或者使用source .bashrc刷新配置</p>
+<p>之后检查交叉编译工具链是否正确</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">aarch64-none-linux-gnu-gcc -v</span><br></pre></td></tr></table></figure>
+<p>如果出现了对应的版本号则说明工具链安装正确</p>
+<h4 id="step3">Step3:</h4>
+<p>下载<a
+href="https://github.com/microsoft/onnxruntime/releases">ONNXRuntime</a>，这里下载对应的版本就行（此时为了方便调试，可以同时下载x64和aarch64两种）</p>
+<p>下载后就得到了ONNXRuntime的动态库，同时如果官方给出的里面没有你所需要的版本，则需要下载源码自行编译</p>
+<p>将下载好的文件解压，并放置到工程目录下方便后续使用</p>
+<h4 id="step4">Step4:</h4>
+<p>编写C++程序以实现对ONNX模型的调用，这里给出C++程序的基本框架，该框架只对ONNX模型进行了测试，以便确定能跑通</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;	<span class="comment">// 创建环境</span></span><br><span class="line">    Ort::SessionOptions session_options;					<span class="comment">// 创建配置</span></span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);			<span class="comment">// 设置线程数</span></span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED); <span class="comment">// 设置图优化等级，这里是EXTENDED等级</span></span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;	<span class="comment">// 模型名称</span></span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;		<span class="comment">//创建session</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">   	std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;			<span class="comment">// 输入名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;		<span class="comment">// 输出名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">250</span>&#125;;		<span class="comment">// 输入数据形状</span></span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*<span class="number">250</span>;	<span class="comment">// 输入数据总大小</span></span><br><span class="line">    <span class="function">vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;		<span class="comment">// 构建输入数据，注意这里应该是一维vector</span></span><br><span class="line">		<span class="comment">// 给输入数据初始值  </span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>;i&lt;input_tensor_size;i++)&#123;</span><br><span class="line">        input_tensor_values[i] = (<span class="type">float</span>) i / (input_tensor_size + <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);	<span class="comment">// 配置存储</span></span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 创建tensor，注意模型的输入必须是tensor而不是vector</span></span><br><span class="line">  	<span class="comment">// 第一个参数是memory_info，第二个是输入数据指针，第三个是输入数据大小，第四个是输入数据形状指针，第五个是输入数据形状大小</span></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>()); <span class="comment">// 断言</span></span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);	<span class="comment">// 执行推理</span></span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;(); <span class="comment">// 转换输出，由于我的pytorch模型输出的就是long int格式，如果输出的是浮点，这里应该是float</span></span><br><span class="line">		</span><br><span class="line">  	<span class="comment">// 打印结果</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编写完C++后，由于我使用的是Clion作为IDE，因此还需要编写CMakeList.txt</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">include_directories</span>(your onnxruntime path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">link_directories</span>(your onnxruntime path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>之后就可以在本地编译，进行测试</p>
+<p>在本地测试通过后还需要进行交叉编译到目标平台</p>
+<p>此时的CMakeList.txt需要进行修改，这里为了方便进行测试所以设置了条件编译，此时</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CROSS_COMPILE <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(CROSS_COMPILE)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_SYSTEM_NAME Linux)</span><br><span class="line">    <span class="keyword">set</span> (CMAKE_SYSTEM_PROCESSOR aarch64)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">set</span>(CMAKE_C_COMPILER aarch64-none-linux-gnu-gcc)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_CXX_COMPILER aarch64-none-linux-gnu-g++)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_aarch64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_aarch64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">else</span>()</span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_x64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_x64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">endif</span>()</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br></pre></td></tr></table></figure>
+<p>同时由于我在Clion中设置交叉编译失败了，因此需要手动编译，在工程目录下执行：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">cmake ..</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+<p>随后便可以得到编译后的程序onnx_test，将其传到目标板子上，同时还需要将onnxruntime_aarch64/lib下的文件，传输到目标开发版的/usr/lib目录下</p>
+<p>在目标板子上新建test文件夹，其下有可执行文件onnx_test和ONNX模型model.onnx</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x onnx_test	<span class="comment"># 赋予可执行权限</span></span><br><span class="line">./onnx_test					<span class="comment"># 执行</span></span><br></pre></td></tr></table></figure>
+<p>在看到输出结果后，就说明移植成功</p>
+<h4 id="step5">Step5:</h4>
+<p>在针对ONNX模型的移植测试通过后，需要进一步完善程序，才能实现ASR</p>
+<p>由于我们的ASR模型输入的数据是音频的Fbank特征，因此还需要移植Fbank特征提取程序，这里我移植了WeNet的程序</p>
+<p>同时由于python程序中对音频和Fbank特征进行了归一化和标准化，因此也需要对其进行实现</p>
+<p>不同的深度学习模型这一部分应该有很大的区别，这里给出最后的主程序以供参考</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Created by qyk on 23-1-8.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;wav.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;fbank.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    wav::WavReader reader;		<span class="comment">// 创建reader</span></span><br><span class="line"></span><br><span class="line">    wenet::FeatureConfig config = wenet::<span class="built_in">FeatureConfig</span>(<span class="number">80</span>, <span class="number">16000</span>);	<span class="comment">// 创建Fbank参数，80维mel，采样率16k</span></span><br><span class="line"></span><br><span class="line">    <span class="function">wenet::Fbank <span class="title">fbank_</span><span class="params">(config.num_bins, config.sample_rate, config.frame_length,</span></span></span><br><span class="line"><span class="params"><span class="function">                        config.frame_shift)</span></span>;	<span class="comment">//创建fabnk提取器</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    reader.<span class="built_in">Open</span>(<span class="string">&quot;1.wav&quot;</span>);</span><br><span class="line">    <span class="comment">//读取wav数据</span></span><br><span class="line">    <span class="type">const</span> <span class="type">float</span>* data=reader.<span class="built_in">data</span>();</span><br><span class="line">    <span class="type">int</span> number_samples = reader.<span class="built_in">num_samples</span>();</span><br><span class="line">    <span class="type">int</span> sample_rate = reader.<span class="built_in">sample_rate</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;wav time:&quot;</span> &lt;&lt; (<span class="type">float</span>)number_samples / sample_rate &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    <span class="comment">//wav归一化</span></span><br><span class="line">    reader.<span class="built_in">normalized</span>();</span><br><span class="line">		</span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; feats;	<span class="comment">// 创建Fbank特征vector</span></span><br><span class="line">    std::vector&lt;<span class="type">float</span>&gt; waves;								<span class="comment">// 创建音频vector</span></span><br><span class="line">    waves.<span class="built_in">insert</span>(waves.<span class="built_in">end</span>(), data, data + number_samples);	<span class="comment">// 将音频数据写入其中</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//计算Fbank, 返回Fbank特征帧数, feats[frame_number, fbank_dim]</span></span><br><span class="line">    <span class="type">int</span> frame_number = fbank_.<span class="built_in">Compute</span>(waves, &amp;feats);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 对feats进行转置，得到feats_T</span></span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; <span class="built_in">feats_T</span>(feats[<span class="number">0</span>].<span class="built_in">size</span>());</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;frame_number; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats[<span class="number">0</span>].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[j].<span class="built_in">push_back</span>(feats[i][j]);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//Fbank标准化</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;<span class="number">80</span>; ++i) &#123;</span><br><span class="line">        <span class="type">double</span> sum = std::<span class="built_in">accumulate</span>(std::<span class="built_in">begin</span>(feats_T[i]), std::<span class="built_in">end</span>(feats_T[i]), <span class="number">0.0</span>);</span><br><span class="line">        <span class="type">double</span> mean = sum / feats_T[i].<span class="built_in">size</span>();</span><br><span class="line">        <span class="type">double</span> std = <span class="number">0.0</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            std = std + <span class="built_in">pow</span>(feats_T[i][j]-mean,<span class="number">2</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        std = <span class="built_in">sqrt</span>(std/feats_T[i].<span class="built_in">size</span>()<span class="number">-1</span>);</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[i][j] = (feats_T[i][j] - mean)/(<span class="number">1e-10</span>+std);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;</span><br><span class="line">    Ort::SessionOptions session_options;</span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);</span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);</span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;</span><br><span class="line"><span class="comment">//    Ort::AllocatorWithDefaultOptions allocator;</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, frame_number&#125;;</span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*frame_number;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;</span><br><span class="line">    <span class="type">size_t</span> count=<span class="number">0</span>;</span><br><span class="line">  	<span class="comment">// 创建输入vector，将feast_T转为一维向量，以便后面构建tensor</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>; i&lt;<span class="number">80</span>; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">size_t</span> j = <span class="number">0</span>; j&lt;frame_number; j++)&#123;</span><br><span class="line">            input_tensor_values[count] = feats_T[i][j];</span><br><span class="line">            count++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);</span><br><span class="line"></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同时由于移植的Fbank提取是多个文件在一个文件夹中，因此也需要在该文件夹中新建CMakeList.txt，并填写以下内容</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">add_library</span>(utils STATIC wav.cpp fft.cpp fbank.cpp)</span><br></pre></td></tr></table></figure>
+<p>同时在项目主文件夹中的CMakeList.txt也需要加上</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">include_directories</span>(./ ./utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(main utils onnxruntime)</span><br></pre></td></tr></table></figure>
+<p>此后便可编译运行，而交叉编译部分第4步差不多</p>
+<p>至此移植深度学习模型至嵌入式上也就完成了</p>
+<h2 id="参考">参考</h2>
+<ol type="1">
+<li><a href="https://github.com/wenet-e2e/wenet">WeNet</a></li>
+<li><a href="https://onnxruntime.ai">ONNXRuntime</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>ONNXRuntime</tag>
+        <tag>嵌入式</tag>
+        <tag>C++</tag>
       </tags>
   </entry>
 </search>
