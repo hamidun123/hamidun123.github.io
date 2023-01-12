@@ -19,29 +19,39 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"hamidun123.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="介绍DDP（DistributedDataParallel）使用">
+    <meta name="description" content="Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein 作者使用 “filter normalization” 方法对Loss Landscape 进行可视化">
 <meta property="og:type" content="article">
-<meta property="og:title" content="PyTorch 单机多卡训练方法">
-<meta property="og:url" content="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:title" content="Visualizing the Loss Landscape of Neural Nets">
+<meta property="og:url" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/index.html">
 <meta property="og:site_name" content="宇坤の博客">
-<meta property="og:description" content="介绍DDP（DistributedDataParallel）使用">
+<meta property="og:description" content="Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein 作者使用 “filter normalization” 方法对Loss Landscape 进行可视化">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2022-09-10T12:59:12.000Z">
-<meta property="article:modified_time" content="2023-01-12T12:47:42.369Z">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103095128861.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103102856130.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103111904201.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103111925917.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103144523679.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103150249947.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103150319529.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103151150784.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103152828904.png">
+<meta property="article:published_time" content="2022-11-02T07:09:34.000Z">
+<meta property="article:modified_time" content="2023-01-12T13:07:25.212Z">
 <meta property="article:author" content="Yukun Qian">
-<meta property="article:tag" content="DDP">
-<meta property="article:tag" content="Pytorch">
+<meta property="article:tag" content="Loss Landscape">
+<meta property="article:tag" content="可视化">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/img/image-20221103095128861.png">
 
 
-<link rel="canonical" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+<link rel="canonical" href="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/","path":"2022/09/10/PyTorch 单机多卡训练方法/","title":"PyTorch 单机多卡训练方法"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/","path":"2022/11/02/Visualizing the Loss Landscape of Neural Nets/","title":"Visualizing the Loss Landscape of Neural Nets"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>PyTorch 单机多卡训练方法 | 宇坤の博客</title>
+<title>Visualizing the Loss Landscape of Neural Nets | 宇坤の博客</title>
   
 
 
@@ -140,7 +150,9 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E6%A8%A1%E5%9E%8B%E6%95%B0%E6%8D%AE%E9%85%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text">1.初始化模型，数据，配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">2.构造数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A8%A1%E5%9E%8B%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">3.模型初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E8%AE%BE%E7%BD%AE"><span class="nav-number">4.</span> <span class="nav-text">4.训练设置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%9D%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">5.保存模型</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#dimensional-linear-interpolation"><span class="nav-number">1.</span> <span class="nav-text">1-Dimensional Linear
+Interpolation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#contour-plots-random-directions"><span class="nav-number">2.</span> <span class="nav-text">Contour Plots &amp; Random
+Directions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#filter-wise-normalization"><span class="nav-number">3.</span> <span class="nav-text">Filter-Wise Normalization</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#supplementary"><span class="nav-number">4.</span> <span class="nav-text">Supplementary</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -201,7 +213,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -214,12 +226,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="PyTorch 单机多卡训练方法 | 宇坤の博客">
+      <meta itemprop="name" content="Visualizing the Loss Landscape of Neural Nets | 宇坤の博客">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          PyTorch 单机多卡训练方法
+          Visualizing the Loss Landscape of Neural Nets
         </h1>
 
         <div class="post-meta-container">
@@ -230,14 +242,14 @@
       </span>
       <span class="post-meta-item-text">发表于</span>
 
-      <time title="创建时间：2022-09-10 20:59:12" itemprop="dateCreated datePublished" datetime="2022-09-10T20:59:12+08:00">2022-09-10</time>
+      <time title="创建时间：2022-11-02 15:09:34" itemprop="dateCreated datePublished" datetime="2022-11-02T15:09:34+08:00">2022-11-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2023-01-12 20:47:42" itemprop="dateModified" datetime="2023-01-12T20:47:42+08:00">2023-01-12</time>
+      <time title="修改时间：2023-01-12 21:07:25" itemprop="dateModified" datetime="2023-01-12T21:07:25+08:00">2023-01-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -245,7 +257,7 @@
       </span>
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%95%99%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">教程</span></a>
+          <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
         </span>
     </span>
 
@@ -263,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>116</span>
+      <span>1.5k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>1 分钟</span>
+      <span>6 分钟</span>
     </span>
 </div>
 
@@ -281,17 +293,134 @@
     
     
     <div class="post-body" itemprop="articleBody">
-        <p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
-<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h4 id="构造数据">2.构造数据</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
-<h4 id="模型初始化">3.模型初始化</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="训练设置">4.训练设置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="保存模型">5.保存模型</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+        <p>Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein</p>
+<p>作者使用 “filter normalization” 方法对Loss Landscape 进行可视化
+<span id="more"></span></p>
+<p>假设神经网络的输入为<span
+class="math inline">\(\{x_i\}\)</span>，其对应的标签为<span
+class="math inline">\(\{y_i\}\)</span>，损失函数为<span
+class="math inline">\(L(\theta)=\frac{1}{m}\sum_{i=1}^ml(x_i,y_i;\theta)\)</span>，其中<span
+class="math inline">\(\theta\)</span>为神经网络参数，其一般数量都非常庞大，因而其位于高维空间。但是我们只能使用一维或二维的方法对其进行可视化。</p>
+<h2 id="dimensional-linear-interpolation">1-Dimensional Linear
+Interpolation</h2>
+<p>一维线性插值，该方法提前选定两个参数<span
+class="math inline">\(\theta\)</span>和<span
+class="math inline">\(\theta&#39;\)</span>，并绘制这两个参数连线上的损失函数值，对于该连线我们可以使用如下方法将其参数化：
+<span class="math display">\[
+\theta(\alpha)=(1-\alpha)\theta+\alpha\theta&#39;
+\]</span> 通过绘制函数<span
+class="math inline">\(f(\alpha)=L(\theta(\alpha))\)</span>来实现可视化。其中<span
+class="math inline">\(\theta\)</span>一般被选定为初始值，<span
+class="math inline">\(\theta&#39;\)</span>被选为经过训练后的参数。</p>
+<p>但是一维线性插值方法存在缺点：一维图很难对非凸性进行可视化，该方法不考虑网络中的不变性，对称性和批量归一化</p>
+<h2 id="contour-plots-random-directions">Contour Plots &amp; Random
+Directions</h2>
+<p>等高线和随机方向，该方法需要选取一个中心点<span
+class="math inline">\(\theta^*\)</span>，并选择两个方向<span
+class="math inline">\(\delta\)</span>和<span
+class="math inline">\(\eta\)</span>，然后绘制如下函数 <span
+class="math display">\[
+f(\alpha,\beta)=L(\theta^*+\alpha\delta+\beta\eta)
+\]</span>
+该方法被用于探索不同最小化方法的轨迹，但是由于2D绘图的计算量，该方法会导致小区域上的分辨率较低</p>
+<p>因此作者提出使用 Filter-Wise Normalization</p>
+<h2 id="filter-wise-normalization">Filter-Wise Normalization</h2>
+<p>由于网络具有尺度变换不变性，因此常规的2D绘图会导致两个不同图之间无法比较</p>
+<p>为了消除该影响，作者对其进行归一化，首先生成一个和<span
+class="math inline">\(\theta\)</span>维度一样的高斯采样的向量<span
+class="math inline">\(d\)</span>，再根据<span
+class="math inline">\(\theta\)</span>对其进行归一化 <span
+class="math display">\[
+d_{i,j}\gets \frac{d_{i,j}}{||d_{i,j}||}||\theta_{i,j}||
+\]</span> 作者通过上述的方法来对 minimizers
+的锐度与泛化性之间的关系进行研究，并和未归一化的图进行对比</p>
+<p>目前广泛的认知是损失函数的平坦性和泛化性之间的关系是小批量的SGD方法可以产生泛化性良好的平坦曲面，而大批量的SGD方法则对应的是泛化性较差的最小值</p>
+<figure>
+<img src="img\image-20221103095128861.png"
+alt="image-20221103095128861" />
+<figcaption aria-hidden="true">image-20221103095128861</figcaption>
+</figure>
+<p>作者先通过实现证明1D可视化的局限性，在图（a）和（d）中横坐标0和1处分别指小batch_size模型参数<span
+class="math inline">\(\theta^s\)</span>和大batch_size模型参数<span
+class="math inline">\(\theta^l\)</span></p>
+<p>在（a）中小批量模型参数附近相当宽广，而大批量部分则相对尖锐，但是该情况可以通过使用weight
+decay来实现翻转，在（d）中作者使用了weight
+decay，其中小批量部分的泛化性（测试集错误率）最强，但是其图像却是尖锐的，在图（c）和（f）则是对其参数的直方图进行了绘制，在（b）和（e）中则绘制了模型在训练过程中的L2范数的变化。小批量的模型在weight
+decay的情况下发生了更大的波动，这是由于小批量模型更新次数更多，受到weight
+decay的影响也更多</p>
+<p>作者使用Filter Normalized对上述实验进行重复得到了下图</p>
+<figure>
+<img src="img\image-20221103102856130.png"
+alt="image-20221103102856130" />
+<figcaption aria-hidden="true">image-20221103102856130</figcaption>
+</figure>
+<p>经过归一化以后的模型避免了上述的问题，小批量的模型确实拥有更大的平坦度</p>
+<p>随后作者又对初始化，残差链接，模型宽度进行了可视化</p>
+<figure>
+<img src="img\image-20221103111904201.png"
+alt="image-20221103111904201" />
+<figcaption aria-hidden="true">image-20221103111904201</figcaption>
+</figure>
+<p>上图主要是不同网络层深度和有无残差连接的结果，可以看到加入残差连接后的模型哪怕到110层其Loss
+Landscape依旧平坦，但是不加的部分则充满了非凸性</p>
+<p>下图作者展示了宽网络带来的影响，其表明了加宽网络宽度也可以增加平坦度</p>
+<figure>
+<img src="img\image-20221103111925917.png"
+alt="image-20221103111925917" />
+<figcaption aria-hidden="true">image-20221103111925917</figcaption>
+</figure>
+<p>同时作者还指出了降维可视化损失函数和真实高维之间的联系，在降维图中如果存在非凸性，则全维图中必然也存在非凸性，但是低维的凸性不意味着高维函数的真正凸性，其只意味这正曲率占据主导地位</p>
+<h2 id="supplementary">Supplementary</h2>
+<p>作者在附录中给出了更多的实验</p>
+<p>先是weight decay对训练过程中权重范数变化的影响</p>
+<figure>
+<img src="img\image-20221103144523679.png"
+alt="image-20221103144523679" />
+<figcaption aria-hidden="true">image-20221103144523679</figcaption>
+</figure>
+<p>接着对比了给定随机法向方向<span
+class="math inline">\(d\)</span>的归一化方法，让<span
+class="math inline">\(\theta_i\)</span>表示第<span
+class="math inline">\(i\)</span>层的权重，<span
+class="math inline">\(\theta_{i,j}\)</span>表示第<span
+class="math inline">\(i\)</span>层的第<span
+class="math inline">\(j\)</span>个filter</p>
+<p>作者对比了三种方法，分别为：</p>
+<p>无归一化</p>
+<p>Filter 归一化 <span class="math display">\[
+d_{i,j}\gets \frac{d_{i,j}}{||d_{i,j}||}||\theta_{i,j}||
+\]</span> Layer归一化 <span class="math display">\[
+d_{i,j}\gets \frac{d_{i}}{||d_{i}||}||\theta_{i}||
+\]</span>
+下图展示的是无归一化，其中（a，e）和（c，g）展示了其锐利度和泛化性无关的错误结论，证明该方法不能很好展示模型的平坦度</p>
+<figure>
+<img src="img\image-20221103150249947.png"
+alt="image-20221103150249947" />
+<figcaption aria-hidden="true">image-20221103150249947</figcaption>
+</figure>
+<p>下图展示了Layer 归一化，其中（c，g）图片对也出现了错误</p>
+<figure>
+<img src="img\image-20221103150319529.png"
+alt="image-20221103150319529" />
+<figcaption aria-hidden="true">image-20221103150319529</figcaption>
+</figure>
+<p>最后作者给出了如何可视化训练过程路径</p>
+<p>在可视化训练轨迹的时候，随机方向方法不可用，其会导致训练路径出现较大错误，如下所示</p>
+<figure>
+<img src="img\image-20221103151150784.png"
+alt="image-20221103151150784" />
+<figcaption aria-hidden="true">image-20221103151150784</figcaption>
+</figure>
+<p>作者认为这是由于高维空间中任意两个随机向量几乎都是正交的，而当优化路径位于低维空间时，随机选择的向量将会与包含优化路径的低秩空间正交，从而导致其在随机方向上的投影不会有大的变化</p>
+<p>为此作者提出了使用PCA的方法来选择方向向量，作者用<span
+class="math inline">\(\theta_i\)</span>来表示第<span
+class="math inline">\(i\)</span>轮的参数，并构建出矩阵<span
+class="math inline">\(M=[\theta_0-\theta_n;\dots;\theta_{n-1}-\theta_n]\)</span>，对该矩阵使用PCA算法，并选择前两个作为方向向量，其绘制出的优化路径如下所示</p>
+<figure>
+<img src="img\image-20221103152828904.png"
+alt="image-20221103152828904" />
+<figcaption aria-hidden="true">image-20221103152828904</figcaption>
+</figure>
 
     </div>
 
@@ -327,7 +456,7 @@
   </li>
   <li class="post-copyright-link">
       <strong>本文链接：</strong>
-      <a href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/" title="PyTorch 单机多卡训练方法">https://hamidun123.github.io/2022/09/10/PyTorch 单机多卡训练方法/</a>
+      <a href="https://hamidun123.github.io/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/" title="Visualizing the Loss Landscape of Neural Nets">https://hamidun123.github.io/2022/11/02/Visualizing the Loss Landscape of Neural Nets/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -336,21 +465,21 @@
 </div>
 
           <div class="post-tags">
-              <a href="/tags/DDP/" rel="tag"># DDP</a>
-              <a href="/tags/Pytorch/" rel="tag"># Pytorch</a>
+              <a href="/tags/Loss-Landscape/" rel="tag"># Loss Landscape</a>
+              <a href="/tags/%E5%8F%AF%E8%A7%86%E5%8C%96/" rel="tag"># 可视化</a>
           </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2022/09/10/Transformer/" rel="prev" title="Transformer">
-                  <i class="fa fa-chevron-left"></i> Transformer
+                <a href="/2022/09/10/BERT/" rel="prev" title="BERT">
+                  <i class="fa fa-chevron-left"></i> BERT
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2022/09/10/BERT/" rel="next" title="BERT">
-                  BERT <i class="fa fa-chevron-right"></i>
+                <a href="/2023/01/09/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E6%95%99%E7%A8%8B/" rel="next" title="深度学习模型移植嵌入式设备教程">
+                  深度学习模型移植嵌入式设备教程 <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
           </div>
@@ -437,13 +566,13 @@
 
   
 
-  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
 <script src="/js/third-party/math/mathjax.js"></script>
 
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.css" integrity="sha256-AJnUHL7dBv6PGaeyPQJcgQPDjt/Hn/PvYZde1iqfp8U=" crossorigin="anonymous">
 
-<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"ebfb196066743e9a176212ddef69b5ec"}</script>
+<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"004ef869b5f87a676641b87ae9f07c18"}</script>
 <script src="/js/third-party/comments/gitalk.js"></script>
 
 </body>

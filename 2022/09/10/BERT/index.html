@@ -19,29 +19,36 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"hamidun123.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="介绍DDP（DistributedDataParallel）使用">
+    <meta name="description" content="介绍BERT相关知识">
 <meta property="og:type" content="article">
-<meta property="og:title" content="PyTorch 单机多卡训练方法">
-<meta property="og:url" content="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:title" content="BERT">
+<meta property="og:url" content="https://hamidun123.github.io/2022/09/10/BERT/index.html">
 <meta property="og:site_name" content="宇坤の博客">
-<meta property="og:description" content="介绍DDP（DistributedDataParallel）使用">
+<meta property="og:description" content="介绍BERT相关知识">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/v2-11505b394299037e999d12997e9d1789_720w.jpg">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/image-20210112100222553.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/v2-b054e303cdafa0ce41ad761d5d0314e1_720w.jpg">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/UfRxJK.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/Uf7nqU.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/Ufzq3D.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/UhP3Jx.png">
 <meta property="article:published_time" content="2022-09-10T12:59:12.000Z">
-<meta property="article:modified_time" content="2023-01-12T12:47:42.369Z">
+<meta property="article:modified_time" content="2023-01-12T13:05:09.973Z">
 <meta property="article:author" content="Yukun Qian">
-<meta property="article:tag" content="DDP">
-<meta property="article:tag" content="Pytorch">
+<meta property="article:tag" content="BERT">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://hamidun123.github.io/2022/09/10/BERT/img/v2-11505b394299037e999d12997e9d1789_720w.jpg">
 
 
-<link rel="canonical" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+<link rel="canonical" href="https://hamidun123.github.io/2022/09/10/BERT/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/","path":"2022/09/10/PyTorch 单机多卡训练方法/","title":"PyTorch 单机多卡训练方法"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/09/10/BERT/","path":"2022/09/10/BERT/","title":"BERT"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>PyTorch 单机多卡训练方法 | 宇坤の博客</title>
+<title>BERT | 宇坤の博客</title>
   
 
 
@@ -140,7 +147,8 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E6%A8%A1%E5%9E%8B%E6%95%B0%E6%8D%AE%E9%85%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text">1.初始化模型，数据，配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">2.构造数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A8%A1%E5%9E%8B%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">3.模型初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E8%AE%BE%E7%BD%AE"><span class="nav-number">4.</span> <span class="nav-text">4.训练设置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%9D%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">5.保存模型</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#embedding"><span class="nav-number">1.</span> <span class="nav-text">1.Embedding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pre-training"><span class="nav-number">2.</span> <span class="nav-text">2.pre-training</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#task-1-masked-lm"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 Task #1 Masked LM</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#task-2-next-sentence-prediction-nsp"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Task #2 Next Sentence
+Prediction (NSP)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fine-tuning"><span class="nav-number">3.</span> <span class="nav-text">3.fine-tuning</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#classification"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 classification</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slot-filling"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 Slot Filling</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#nli"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 NLI</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#qa"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 QA</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -201,7 +209,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/09/10/BERT/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -214,12 +222,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="PyTorch 单机多卡训练方法 | 宇坤の博客">
+      <meta itemprop="name" content="BERT | 宇坤の博客">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          PyTorch 单机多卡训练方法
+          BERT
         </h1>
 
         <div class="post-meta-container">
@@ -237,7 +245,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2023-01-12 20:47:42" itemprop="dateModified" datetime="2023-01-12T20:47:42+08:00">2023-01-12</time>
+      <time title="修改时间：2023-01-12 21:05:09" itemprop="dateModified" datetime="2023-01-12T21:05:09+08:00">2023-01-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -245,7 +253,7 @@
       </span>
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%95%99%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">教程</span></a>
+          <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
         </span>
     </span>
 
@@ -263,14 +271,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>116</span>
+      <span>1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>1 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -281,17 +289,87 @@
     
     
     <div class="post-body" itemprop="articleBody">
-        <p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
-<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h4 id="构造数据">2.构造数据</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
-<h4 id="模型初始化">3.模型初始化</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="训练设置">4.训练设置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="保存模型">5.保存模型</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+        <p>介绍BERT相关知识</p>
+<span id="more"></span>
+<p>BERT是双向的Transformer中的Encoder，其设计可以让其通用与许多NLP任务</p>
+<h3 id="embedding">1.Embedding</h3>
+<figure>
+<img src="img/v2-11505b394299037e999d12997e9d1789_720w.jpg" alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>Token
+Embeddings是词向量，第一个单词是CLS标志，可以用于之后的分类任务</p>
+<p>Segment
+Embeddings用来区别两种句子，因为预训练不光做LM还要做以两个句子为输入的分类任务</p>
+<p>Position
+Embeddings和Transformer中的不一样，不是三角函数，而是学习出来的</p>
+<p><img src="img/image-20210112100222553.png" alt="image-20210112100222553"  /></p>
+<h3 id="pre-training">2.pre-training</h3>
+<p>在Pre-training中有两个任务</p>
+<h4 id="task-1-masked-lm">2.1 Task #1 Masked LM</h4>
+<p>在 BERT 中，Masked
+LM构建了语言模型，随机遮盖或替换一句话里面的任意字或词，然后让模型通过上下文预测那一个被遮盖或替换的部分，之后做
+Loss 的时候也只计算被遮盖部分的
+Loss，这其实是一个很容易理解的任务，实际操作如下：</p>
+<ol type="1">
+<li>随机把一句话中 15% 的 token（字或词）替换成以下内容：
+<ol type="1">
+<li>这些 token 有 80% 的几率被替换成 [MASK]，例如 my dog is hairy→my dog
+is [MASK]</li>
+<li>有 10% 的几率被替换成任意一个其它的 token，例如 my dog is hairy→my
+dog is apple</li>
+<li>有 10% 的几率原封不动，例如 my dog is hairy→my dog is hairy</li>
+</ol></li>
+<li>之后让模型预测和还原被遮盖掉或替换掉的部分，计算损失的时候，只计算在第
+1
+步里被随机遮盖或替换的部分，其余部分不做损失，其余部分无论输出什么东西，都无所谓</li>
+</ol>
+<p>这样做的好处是，BERT 并不知道 [MASK]
+替换的是哪一个词，而且任何一个词都有可能是被替换掉的，比如它看到的 apple
+可能是被替换的词。这样强迫模型在编码当前时刻词的时候不能太依赖当前的词，而要考虑它的上下文，甚至根据上下文进行
+"纠错"。比如上面的例子中，模型在编码 apple 时，根据上下文 my dog
+is，应该把 apple 编码成 hairy 的语义而不是 apple 的语义</p>
+<h4 id="task-2-next-sentence-prediction-nsp">2.2 Task #2 Next Sentence
+Prediction (NSP)</h4>
+<p>首先拿到属于上下文的一对句子，也就是两个句子，之后在这两个句子中加一些特殊的
+token：[CLS]上一句话[SEP]下一句话[SEP]。也就是在句子开头加一个
+[CLS]，在两句话之间和句末加 [SEP]</p>
+<h3 id="fine-tuning">3.fine-tuning</h3>
+<p>在该阶段BERT对于不同任务所采用的输出不相同</p>
+<figure>
+<img src="img/v2-b054e303cdafa0ce41ad761d5d0314e1_720w.jpg" alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>具体来说分为4类</p>
+<h4 id="classification">3.1 classification</h4>
+<p><img src="img/UfRxJK.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是
+classification，首先在输入句子的开头加一个代表分类的符号
+[CLS]，然后将该位置的 output，丢给 Linear Classifier，让其 predict 一个
+class 即可。整个过程中 Linear Classifier 的参数是需要从头开始学习的，而
+BERT 中的参数微调就可以了</p>
+<h4 id="slot-filling">3.2 Slot Filling</h4>
+<p><img src="img/Uf7nqU.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是 Slot Filling，将句子中各个字对应位置的 output
+分别送入不同的
+Linear，预测出该字的标签。其实这本质上还是个分类问题，只不过是对每个字都要预测一个类别</p>
+<h4 id="nli">3.3 NLI</h4>
+<p><img src="img/Ufzq3D.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是
+NLI，即给定一个前提，然后给出一个假设，模型要判断出这个假设是
+正确、错误还是不知道</p>
+<p>这本质上是一个三分类的问题，和 classification 差不多，对 [CLS] 的
+output 进行预测即可</p>
+<h4 id="qa">3.4 QA</h4>
+<p><img src="img/UhP3Jx.png" alt="img" style="zoom:67%;" /></p>
+<p>首先将问题和文章通过 [SEP] 分隔，送入 BERT
+之后，得到上图中黄色的输出。此时我们还要训练两个
+vector，即上图中橙色和黄色的向量。首先将橙色和所有的黄色向量进行 dot
+product，然后通过 softmax，看哪一个输出的值最大，例如上图中 d2
+对应的输出概率最大，那我们就认为 s=2</p>
+<p>参考以下文章</p>
+<p><a
+target="_blank" rel="noopener" href="https://wmathor.com/index.php/archives/1456/">BERT详解</a></p>
 
     </div>
 
@@ -327,7 +405,7 @@
   </li>
   <li class="post-copyright-link">
       <strong>本文链接：</strong>
-      <a href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/" title="PyTorch 单机多卡训练方法">https://hamidun123.github.io/2022/09/10/PyTorch 单机多卡训练方法/</a>
+      <a href="https://hamidun123.github.io/2022/09/10/BERT/" title="BERT">https://hamidun123.github.io/2022/09/10/BERT/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -336,21 +414,20 @@
 </div>
 
           <div class="post-tags">
-              <a href="/tags/DDP/" rel="tag"># DDP</a>
-              <a href="/tags/Pytorch/" rel="tag"># Pytorch</a>
+              <a href="/tags/BERT/" rel="tag"># BERT</a>
           </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2022/09/10/Transformer/" rel="prev" title="Transformer">
-                  <i class="fa fa-chevron-left"></i> Transformer
+                <a href="/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/" rel="prev" title="PyTorch 单机多卡训练方法">
+                  <i class="fa fa-chevron-left"></i> PyTorch 单机多卡训练方法
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2022/09/10/BERT/" rel="next" title="BERT">
-                  BERT <i class="fa fa-chevron-right"></i>
+                <a href="/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/" rel="next" title="Visualizing the Loss Landscape of Neural Nets">
+                  Visualizing the Loss Landscape of Neural Nets <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
           </div>
@@ -443,7 +520,7 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.css" integrity="sha256-AJnUHL7dBv6PGaeyPQJcgQPDjt/Hn/PvYZde1iqfp8U=" crossorigin="anonymous">
 
-<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"ebfb196066743e9a176212ddef69b5ec"}</script>
+<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"0adb38135af4b9323949f7f3b6a60bcd"}</script>
 <script src="/js/third-party/comments/gitalk.js"></script>
 
 </body>

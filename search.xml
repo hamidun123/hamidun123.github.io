@@ -1,0 +1,2509 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>BERT</title>
+    <url>/2022/09/10/BERT/</url>
+    <content><![CDATA[<p>介绍BERT相关知识</p>
+<span id="more"></span>
+<p>BERT是双向的Transformer中的Encoder，其设计可以让其通用与许多NLP任务</p>
+<h3 id="embedding">1.Embedding</h3>
+<figure>
+<img src="img/v2-11505b394299037e999d12997e9d1789_720w.jpg" alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>Token
+Embeddings是词向量，第一个单词是CLS标志，可以用于之后的分类任务</p>
+<p>Segment
+Embeddings用来区别两种句子，因为预训练不光做LM还要做以两个句子为输入的分类任务</p>
+<p>Position
+Embeddings和Transformer中的不一样，不是三角函数，而是学习出来的</p>
+<p><img src="img/image-20210112100222553.png" alt="image-20210112100222553"  /></p>
+<h3 id="pre-training">2.pre-training</h3>
+<p>在Pre-training中有两个任务</p>
+<h4 id="task-1-masked-lm">2.1 Task #1 Masked LM</h4>
+<p>在 BERT 中，Masked
+LM构建了语言模型，随机遮盖或替换一句话里面的任意字或词，然后让模型通过上下文预测那一个被遮盖或替换的部分，之后做
+Loss 的时候也只计算被遮盖部分的
+Loss，这其实是一个很容易理解的任务，实际操作如下：</p>
+<ol type="1">
+<li>随机把一句话中 15% 的 token（字或词）替换成以下内容：
+<ol type="1">
+<li>这些 token 有 80% 的几率被替换成 [MASK]，例如 my dog is hairy→my dog
+is [MASK]</li>
+<li>有 10% 的几率被替换成任意一个其它的 token，例如 my dog is hairy→my
+dog is apple</li>
+<li>有 10% 的几率原封不动，例如 my dog is hairy→my dog is hairy</li>
+</ol></li>
+<li>之后让模型预测和还原被遮盖掉或替换掉的部分，计算损失的时候，只计算在第
+1
+步里被随机遮盖或替换的部分，其余部分不做损失，其余部分无论输出什么东西，都无所谓</li>
+</ol>
+<p>这样做的好处是，BERT 并不知道 [MASK]
+替换的是哪一个词，而且任何一个词都有可能是被替换掉的，比如它看到的 apple
+可能是被替换的词。这样强迫模型在编码当前时刻词的时候不能太依赖当前的词，而要考虑它的上下文，甚至根据上下文进行
+"纠错"。比如上面的例子中，模型在编码 apple 时，根据上下文 my dog
+is，应该把 apple 编码成 hairy 的语义而不是 apple 的语义</p>
+<h4 id="task-2-next-sentence-prediction-nsp">2.2 Task #2 Next Sentence
+Prediction (NSP)</h4>
+<p>首先拿到属于上下文的一对句子，也就是两个句子，之后在这两个句子中加一些特殊的
+token：[CLS]上一句话[SEP]下一句话[SEP]。也就是在句子开头加一个
+[CLS]，在两句话之间和句末加 [SEP]</p>
+<h3 id="fine-tuning">3.fine-tuning</h3>
+<p>在该阶段BERT对于不同任务所采用的输出不相同</p>
+<figure>
+<img src="img/v2-b054e303cdafa0ce41ad761d5d0314e1_720w.jpg" alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>具体来说分为4类</p>
+<h4 id="classification">3.1 classification</h4>
+<p><img src="img/UfRxJK.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是
+classification，首先在输入句子的开头加一个代表分类的符号
+[CLS]，然后将该位置的 output，丢给 Linear Classifier，让其 predict 一个
+class 即可。整个过程中 Linear Classifier 的参数是需要从头开始学习的，而
+BERT 中的参数微调就可以了</p>
+<h4 id="slot-filling">3.2 Slot Filling</h4>
+<p><img src="img/Uf7nqU.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是 Slot Filling，将句子中各个字对应位置的 output
+分别送入不同的
+Linear，预测出该字的标签。其实这本质上还是个分类问题，只不过是对每个字都要预测一个类别</p>
+<h4 id="nli">3.3 NLI</h4>
+<p><img src="img/Ufzq3D.png" alt="img" style="zoom:67%;" /></p>
+<p>如果现在的任务是
+NLI，即给定一个前提，然后给出一个假设，模型要判断出这个假设是
+正确、错误还是不知道</p>
+<p>这本质上是一个三分类的问题，和 classification 差不多，对 [CLS] 的
+output 进行预测即可</p>
+<h4 id="qa">3.4 QA</h4>
+<p><img src="img/UhP3Jx.png" alt="img" style="zoom:67%;" /></p>
+<p>首先将问题和文章通过 [SEP] 分隔，送入 BERT
+之后，得到上图中黄色的输出。此时我们还要训练两个
+vector，即上图中橙色和黄色的向量。首先将橙色和所有的黄色向量进行 dot
+product，然后通过 softmax，看哪一个输出的值最大，例如上图中 d2
+对应的输出概率最大，那我们就认为 s=2</p>
+<p>参考以下文章</p>
+<p><a
+href="https://wmathor.com/index.php/archives/1456/">BERT详解</a></p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>BERT</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MoChA</title>
+    <url>/2022/09/10/MoChA/</url>
+    <content><![CDATA[<p>介绍单调注意力机制MoChA</p>
+<span id="more"></span>
+<p><img src="img/image-20210916151749700.png" /></p>
+<p>ICLR 2018 的一篇论文</p>
+<p>作者认为传统的 Soft-Attention 存在着计算复杂度和输入输出序列长度T,U
+乘积正相关，复杂度为O（TU），因此不适合长序列计算，且在计算attention过程中由于需要等待输入完成才可以开始计算，因此无法做到实时解码。Raffel
+等在2017年指出当输入序列和输出序列直接不需要重排的时候可以简化运算如图(b)，但是其使用的Hard
+monotonic attention太强硬限制了性能，因此提出了改进版本Monotonic
+chunkwise attention (MoChA)。</p>
+<p>对于序列到序列模型，假设输入是<span
+class="math inline">\(x=\{x_1,\dots,x_T\}\)</span>，输出是<span
+class="math inline">\(y=\{y_1,\dots,y_U\}\)</span>，一般来说输入会被编码器转换为隐藏序列<span
+class="math inline">\(h=\{h_1,\dots,h_T\}\)</span> <span
+class="math display">\[
+h_j=EncoderRNN(x_j,h_{j-1}) \tag{1}
+\]</span> 然后解码器自己迭代计算隐藏向量和输出，这其中<span
+class="math inline">\(s_i\)</span>是解码器隐藏状态，<span
+class="math inline">\(c_i\)</span>是上下文向量，<span
+class="math inline">\(y_i\)</span>是输出结果，需要注意的是<span
+class="math inline">\(c_i\)</span>是解码器和编码器沟通的唯一通道 <span
+class="math display">\[
+s_i=DecoderRNN(y_{i-1},s_{i-1},c_i) \tag{2}
+\]</span></p>
+<p><span class="math display">\[
+y_i=Output(s_i,c_i) \tag{3}
+\]</span></p>
+<h3 id="标准注意力机制">1.标准注意力机制</h3>
+<figure>
+<img src="img/image-20210917103001959.png"
+alt="image-20210917103001959" />
+<figcaption aria-hidden="true">image-20210917103001959</figcaption>
+</figure>
+<p>首先在解码器步骤，根据<span
+class="math inline">\(s_{i-1}\)</span>为每个编码器隐藏状态<span
+class="math inline">\(h_j\)</span>计算能量值<span
+class="math inline">\(e_{i,j}\)</span> <span class="math display">\[
+e_{i,j}=Energy(h_j,s_{i-1}) \tag{4}
+\]</span> 这里的<span
+class="math inline">\(Energy(\cdot)\)</span>有很多选择，一种常见的是，其中<span
+class="math inline">\(W_h,W_s,b,v\)</span>是可以学习的参数 <span
+class="math display">\[
+Energy(h_j,s_{i-1}):=v^Ttanh(W_hh_j+W_ss_{i-1}+b) \tag{5}
+\]</span> 之后对<span class="math inline">\(e_{i,j}\)</span>使用<span
+class="math inline">\(softmax\)</span>便可以得到权重值 <span
+class="math display">\[
+\alpha_{i,j}=\frac{exp(e_{i,j})}{\sum_{k=1}^{T}exp(e_{i,k})}=softmax(e_{i,:})j
+\tag{5}
+\]</span> 最后利用<span
+class="math inline">\(\alpha_{i,j}\)</span>对<span
+class="math inline">\(h_j\)</span>进行加权，便可以得到上下文向量<span
+class="math inline">\(c_i\)</span> <span class="math display">\[
+c_i=\sum_{j=1}^{T}\alpha_{i,j}h_j \tag{6}
+\]</span></p>
+<h3 id="硬单调注意力机制">2.硬单调注意力机制</h3>
+<figure>
+<img src="img/image-20210917103024193.png"
+alt="image-20210917103024193" />
+<figcaption aria-hidden="true">image-20210917103024193</figcaption>
+</figure>
+<p>硬单调注意力机制，在每个解码时间步<span
+class="math inline">\(i\)</span>，注意力机制会从上一个时间步所关注的注意力索引，记为<span
+class="math inline">\(t_{i-1}\)</span>，开始向后搜索，对于<span
+class="math inline">\(j=t_{i-1},
+t_{i-1}+1,\dots\)</span>计算每一步的<span
+class="math inline">\(e_{i,j}\)</span>，随后利用<span
+class="math inline">\(\sigma(\cdot)\)</span>将其转换为选择概率<span
+class="math inline">\(p_{i,j}\)</span>，经过随机伯努利采样，得到最后的离散结果<span
+class="math inline">\(z_{i,j}\)</span> <span class="math display">\[
+\begin{gather}
+e_{i,j} = MonotonicEnergy(s_{i-1},h_j) \tag{7}
+\\p_{i,j} = \sigma(e_{i,j}) \tag{8}
+\\z_{i,j} \backsim Bernoulli(p_{i,j}) \tag{9}
+\end{gather}
+\]</span></p>
+<p>一旦出现<span
+class="math inline">\(z_{i,j}\)</span>等于1，模型将会停止，并设置<span
+class="math inline">\(t_i=j，c_i=h_t\)</span>，其复杂度是<span
+class="math inline">\(O(max(T,U))\)</span>，同时还可以被用于实时解码</p>
+<p>但是由于上述过程涉及到了采样，其无法利用反向传播，因此在训练过程需要改为对<span
+class="math inline">\(c_i\)</span>的期望值进行训练，其被改为如下形式
+<span class="math display">\[
+\begin{gather}
+\alpha_{i,j}=p_{i,j}
+\left((1-p_{i,j-1})\frac{\alpha_{i,j-1}}{p_{i,j-1}}+\alpha_{i-1,j}
+\right) \tag{10}
+\\
+c_i=\sum_{j=1}^{T}\alpha_{i,j}h_j \tag{11}
+\end{gather}
+\]</span> 这里主要对第一个公式进行解释，我们定义<span
+class="math inline">\(\alpha_{1,j}\)</span>表示第<span
+class="math inline">\(j\)</span>个被选中而第<span
+class="math inline">\(1,2,\dots,j-1\)</span>没被选中的概率，则 <span
+class="math display">\[
+\alpha_{1,j}=p_{1,j}\prod_{k=1}^{j-1}(1-p_{1,k}) \tag{12}
+\]</span> 当<span class="math inline">\(i&gt;0\)</span>时，对于<span
+class="math inline">\(\alpha_{i,j}\)</span>来说，为了在第<span
+class="math inline">\(i\)</span>个时间步选中第<span
+class="math inline">\(j\)</span>个编码器步骤，除了满足<span
+class="math inline">\(c_i=h_j\)</span>以外，还需要满足<span
+class="math inline">\(c_{i-1}=h_{k},
+k\in\{1,\dots,j\}\)</span>（单调注意力机制）则 <span
+class="math display">\[
+\alpha_{i,j}=p_{i,j}\sum_{k=1}^{j}\left(\alpha_{i-1,k}
+\prod_{l=k}^{j-1}(1-p_{i,l}) \right) \tag{13}
+\]</span> 这里<span
+class="math inline">\(\alpha_{i-1,k}\)</span>描述的是第<span
+class="math inline">\(i-1\)</span>个时间步选择<span
+class="math inline">\(k\)</span>的概率，其乘以在第<span
+class="math inline">\(i\)</span>个时间步不选择<span
+class="math inline">\((k,k+1,\dots,j-1)\)</span>的概率<span
+class="math inline">\(\prod_{l=k}^{j-1}(1-p_{i,l}\)</span>)</p>
+<p>这里我们为了方便，定义<span
+class="math inline">\(\prod_{n}^mx=1,n&gt;m\)</span>，这里式（12）也可以用（13）来表示，只不过需要定义
+<span class="math display">\[
+\alpha_{0,j}=\begin{cases}
+0, \,\,j=1
+\\1, \,\,j\in\{2,\dots,T\} \tag{14}
+\end{cases}
+\]</span> 接下来将从公式（13）推到出公式（10）的形式</p>
+<p>由公式（13），先分离出<span
+class="math inline">\(a_{i-i,j}\)</span>，再从连乘中分离出<span
+class="math inline">\((1-p_{i,j-1})\)</span>，就得到了公式（10）的形式
+<span class="math display">\[
+\begin{align}
+\alpha_{i,j} &amp;= p_{i,j} \left( \sum_{k=1}^{j-1} \left(
+\alpha_{i-1,k} \prod_{l=k}^{j-1}(1-p_{i,l})\right) + \alpha_{i-1,j}
+\right)
+\\ &amp;= p_{i,j}\left( (1-p_{i,j-1}) \sum_{k=1}^{j-1}
+\left(\alpha_{i-1,k} \prod_{l=k}^{j-2}(1-p_{i,l})\right) +
+\alpha_{i-1,j} \right)
+\\ &amp;= p_{i,j}
+\left((1-p_{i,j-1})\frac{\alpha_{i,j-1}}{p_{i,j-1}}+\alpha_{i-1,j}
+\right)
+\end{align}
+\]</span> 对于公式（10）也可以这么理解，<span
+class="math inline">\(\alpha_{i,j-1}\)</span>表示第i步选择<span
+class="math inline">\(j-1\)</span>项的概率，但是为了修正实际没选的事实，需要乘以<span
+class="math inline">\((1-p_{i,j-1})/p_{i,j-1}\)</span>进行修正，再加上<span
+class="math inline">\(\alpha_{i-1,j}\)</span>表征上一步选择<span
+class="math inline">\(j\)</span>的概率，最后乘以<span
+class="math inline">\(p_{i,j}\)</span>强制选择<span
+class="math inline">\(j\)</span></p>
+<p>对于公式（10）来说<span
+class="math inline">\(\alpha_{i,j}\)</span>的计算依赖于<span
+class="math inline">\(\alpha_{i-1,j}\)</span>，<span
+class="math inline">\(\alpha_{i,j-1}\)</span>，而对于<span
+class="math inline">\(\alpha_{i,j-1}\)</span>的依赖则意味着需要计算<span
+class="math inline">\(\alpha_{i,1},\alpha_{i,2},\dots,\alpha_{i,T}\)</span>，然而可以通过一些方法将其计算化简</p>
+<p>定义<span
+class="math inline">\(q_{i,j}=\alpha_{i,j}/p_{i,j}\)</span>，则由公式（10）可得
+<span class="math display">\[
+\begin{align}
+q_{i,j} &amp;= (1-p_{i,j-1})q_{i,j-1}+\alpha_{i-1,j} \tag{15}
+\cr  q_{i,j}-(1-p_{i,j-1})q_{i,j-1} &amp;= \alpha_{i-1,j} \tag{16}
+\cr  \frac{q_{i,j}}{\prod_{k=1}^{j}(1-p_{i,k-1})} -
+\frac{(1-p_{i,j-1})q_{i,j-1}}{\prod_{k=1}^{j}(1-p_{i,k-1})}
+&amp;=  \frac{ \alpha_{i-1,j}}{\prod_{k=1}^{j}(1-p_{i,k-1})} \tag{17}
+\cr  \frac{q_{i,j}}{\prod_{k=1}^{j}(1-p_{i,k-1})} -
+\frac{q_{i,j-1}}{\prod_{k=1}^{j-1}(1-p_{i,k-1})} &amp;=  \frac{
+\alpha_{i-1,j}}{\prod_{k=1}^{j}(1-p_{i,k-1})} \tag{18}
+\cr  \sum_{l=1}^{j}\left( \frac{q_{i,l}}{\prod_{k=1}^{l}(1-p_{i,k-1})} -
+\frac{q_{i,l-1}}{\prod_{k=1}^{l-1}(1-p_{i,k-1})}\right) &amp;=
+\sum_{l=1}^{j} \frac{ \alpha_{i-1,l}}{\prod_{k=1}^{l}(1-p_{i,k-1})}
+\tag{19}
+\cr  \frac{q_{i,j}}{\prod_{k=1}^{j}(1-p_{i,k-1})}-q_{i,0} &amp;=
+\sum_{l=1}^{j} \frac{ \alpha_{i-1,l}}{\prod_{k=1}^{l}(1-p_{i,k-1})}
+\tag{20}
+\end{align}
+\]</span> <span class="math display">\[
+\begin{align}
+q_{i,j} &amp;= \left(\prod_{k=1}^{j}(1-p_{i,k-1})\right)  \left(
+\sum_{l=1}^{j} \frac{ \alpha_{i-1,l}}{\prod_{k=1}^{l}(1-p_{i,k-1})}
+\right) \tag{21}
+\\  q_i &amp;= cumprod(1-p_i)cumsum(\frac{\alpha_{i-1}}{cumprod(1-p_i)})
+\tag{22}
+\end{align}
+\]</span></p>
+<p>其中<span class="math inline">\(cumprod(x)\)</span>和<span
+class="math inline">\(cumsum(x)\)</span>的定义如下：</p>
+<p><span class="math display">\[
+cumprod(x) = [1,x_1,x_1x_2,\dots,\prod_{i}^{|x|-1}x_i]
+\]</span></p>
+<p><span class="math display">\[
+cumsum(x) = [x_1,x_1+x_2,\dots,\sum_{i}^{|x|}x_i]
+\]</span></p>
+<p>同时作者指出，在一些任务上使用原来的<span
+class="math inline">\(Energy(\cdot)\)</span>函数可能面临无法收敛，此时可以改为
+<span class="math display">\[
+MonotonicEnergy(s_{i-1},h_j) =
+g\frac{v^T}{||v||}tanh(W_ss_{i-1}+W_hh_j)+r \tag{23}
+\]</span></p>
+<h3
+id="单调块注意力机制monotonic-chunkwise-attention-mocha">3.单调块注意力机制（Monotonic
+Chunkwise Attention， MoChA）</h3>
+<figure>
+<img src="img/image-20210918092836079.png"
+alt="image-20210918092836079" />
+<figcaption aria-hidden="true">image-20210918092836079</figcaption>
+</figure>
+<p>上一节中的硬单调注意力机制，有两个重要的限制：1.每次只注意一个编码器结果
+2.输入输出对齐式严格单调的。作者认为由于这两个的限制导致了硬单调注意力机制在大部分任务上不如传统注意力机制，因此提出了修改模型MoChA</p>
+<p>在test阶段，其和硬单调注意力机制基本一致，只是在计算<span
+class="math inline">\(c_i\)</span>的时候，改为了计算包括<span
+class="math inline">\(t_i\)</span>在内共<span
+class="math inline">\(w\)</span>长度的普通注意力机制，即在小范围内实现软注意力机制
+<span class="math display">\[
+\begin{align}
+v &amp;= t_i-w+1  \tag{24}
+\\ u_{i,k} &amp;=
+ChunkEnergy(s_{i-1,h_k}),k\in\{v,v+1,\dots,t_i\}  \tag{25}
+\\ c_i &amp;=
+\sum_{k=v}^{t_i}\frac{exp(u_{i,k})}{\sum_{l=v}^{t_i}exp(u_i,l)}h_k  \tag{26}
+\end{align}
+\]</span>
+其中公式（25）的能量函数与公式（5）类似，和公式（23）的不同</p>
+<p>这里作者给出了在test阶段的伪代码</p>
+<figure>
+<img src="img/image-20210918095038044.png"
+alt="image-20210918095038044" />
+<figcaption aria-hidden="true">image-20210918095038044</figcaption>
+</figure>
+<p>在训练阶段仿照第二部分的方法，计算<span
+class="math inline">\(c_i\)</span>的期望值分布，这里记为<span
+class="math inline">\(\beta_{i,j}\)</span>，其中外层的求和考虑了包含<span
+class="math inline">\(j\)</span>位置的所有可能情况的<span
+class="math inline">\(\alpha\)</span> <span class="math display">\[
+\beta_{i,j}=\sum_{k=j}^{j+w-1}\left(\frac{\alpha_{i,k}exp(u_{i,j})}{\sum_{l=k-w+1}^{k}exp(u_{i,l})}\right)
+\tag{27}
+\]</span> 在这里引入<span
+class="math inline">\(MovingSum(\cdot)\)</span> <span
+class="math display">\[
+MovingSum(x,b,f)_n:=\sum_{m=n-(b-1)}^{n+f-1}x_m
+\]</span> 则式（27）可以改写为： <span class="math display">\[
+\beta_{i,:}=exp(u_{i,:})MovingSum\left(\frac{\alpha_{i,:}}{MovingSum(exp(u_{i,:}),w,1)},1,w\right)
+\tag{28}
+\]</span> 最后给出在训练期间MoChA的全部公式 <span
+class="math display">\[
+\begin{align}
+e_{i,j} &amp;= MonotonicEnergy(s_{i-1},h_j) \tag{29}
+\\ \epsilon &amp;\backsim \mathcal{N}(0,1) \tag{30}
+\\ p_{i,j} &amp;= \sigma(e_{i,j}+\epsilon) \tag{31}
+\\ \alpha_{i,:} &amp;=
+p_{i,:}cumprod(1-p_{i,:})cumsum(\frac{\alpha_{i-1,:}}{cumprod(1-p_{i,:})})
+\tag{32}
+\\ u_{i,j} &amp;= ChunkEnergy(s_{i-1,h_j}) \tag{33}
+\\ \beta_{i,:} &amp;=
+exp(u_{i,:})MovingSum\left(\frac{\alpha_{i,:}}{MovingSum(exp(u_{i,:}),w,1)},1,w\right)
+\tag{34}
+\\ c_i &amp;=\sum_{j=1}^{T}\beta_{i,j}h_j \tag{35}
+\end{align}
+\]</span></p>
+<h3
+id="单调自适应分块注意力机制-monotonic-adaptive-chunkwise-attention-matcha">4.单调自适应分块注意力机制
+(Monotonic Adaptive Chunkwise Attention, MAtChA)</h3>
+<figure>
+<img src="img/image-20210918110215791.png"
+alt="image-20210918110215791" />
+<figcaption aria-hidden="true">image-20210918110215791</figcaption>
+</figure>
+<p>作者在附录给出了自适应分块的推导，理论上其可以自适应的选择块的大小，但按照作者所描述的，该方法并没有表现的更好</p>
+<p>在test阶段，其和MoChA十分相似，但是在计算<span
+class="math inline">\(c_i\)</span>的时候，其中的<span
+class="math inline">\(v\)</span>被替换为<span
+class="math inline">\(t_{i-1}\)</span>即计算一般注意力的范围从上一时间步关注的点到当前步为止
+<span class="math display">\[
+c_i=\sum_{k=t_{i-1}}^{t_i}\frac{exp(u_{i,k})}{\sum_{l=t_{i-1}}^{t_i}exp(u_i,l)}h_k
+\tag{36}
+\]</span> 在训练阶段则开始有点复杂了</p>
+<p>首先给出<span class="math inline">\(\beta_{i,j}\)</span>的表达式
+<span class="math display">\[
+\beta_{i,j} =
+\sum_{k=1}^{j}\sum_{l=j}^{T}\left(\frac{exp(u_{i,j})}{\sum_{m=k}^{l}exp(u_{i,m})}\alpha_{i-1,k}p_{i,l}\prod_{n=k}^{l-1}(1-p_{i,n})\right)
+\tag{37}
+\]</span> 这个表达式是这样理解的，首先对于第<span
+class="math inline">\(i\)</span>时间步的第<span
+class="math inline">\(j\)</span>个位置来说，其上一时间步的位置对当前位置是有影响的，因此需要将所有可能性相加，即<span
+class="math inline">\(\sum_{k=1}^{j}\)</span>，而对于每一个<span
+class="math inline">\(k\)</span>当前时间步的位置从<span
+class="math inline">\(j\)</span>开始到<span
+class="math inline">\(T\)</span>也是都有可能，因此也需要相加即<span
+class="math inline">\(\sum_{l=j}^{T}\)</span>，在括号内第一部分<span
+class="math inline">\(\frac{exp(u_{i,j})}{\sum_{m=k}^{l}exp(u_{i,m})}\)</span>则是对<span
+class="math inline">\(k\)</span>到<span
+class="math inline">\(l\)</span>区间的软注意力计算，之后乘以上一时间步选择<span
+class="math inline">\(k\)</span>位置的概率<span
+class="math inline">\(\alpha_{i-1,k}\)</span>，接下来再乘以连续不选<span
+class="math inline">\(k,k+1,\dots,l-1\)</span>的概率和选择<span
+class="math inline">\(l\)</span>的概率<span
+class="math inline">\(p_{i,l}\prod_{n=k}^{l-1}(1-p_{i,n})\)</span></p>
+<p>公式（37）需要进行嵌套计算，在这里给出一个可以并行计算的方法 <span
+class="math display">\[
+\begin{align}
+\beta_{i,j} &amp;=
+\sum_{k=1}^{j}\sum_{l=j}^{T}\left(\frac{exp(u_{i,j})}{\sum_{m=k}^{l}exp(u_{i,m})}\alpha_{i-1,k}p_{i,l}\prod_{n=k}^{l-1}(1-p_{i,n})\right)
+\tag{38}
+\\ &amp;=
+exp(u_{i,j})\sum_{k=1}^{j}\sum_{l=j}^{T}\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}p_{i,l}\prod_{n=k}^{l-1}(1-p_{i,n})\right)
+\tag{39}
+\\ &amp;=
+exp(u_{i,j})\sum_{l=j}^{T}\sum_{k=1}^{j}\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}p_{i,l}\prod_{n=k}^{l-1}(1-p_{i,n})\right)
+\tag{40}
+\\ &amp;=
+exp(u_{i,j})\sum_{l=j}^{T}p_{i,l}\sum_{k=1}^{j}\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{l-1}(1-p_{i,n})\right)
+\tag{41}
+\\ &amp;=
+exp(u_{i,j})\sum_{l=j}^{T}p_{i,l}\sum_{k=1}^{j}\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{j-1}(1-p_{i,n})
+\prod_{o=j}^{l-1}(1-p_{i,o}) \right) \tag{42}
+\\ &amp;= exp(u_{i,j})\sum_{l=j}^{T} p_{i,l}
+\prod_{o=j}^{l-1}(1-p_{i,o}) \sum_{k=1}^{j}
+\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{j-1}(1-p_{i,n})
+\right) \tag{43}
+\end{align}
+\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+r_{i,j,l} &amp;= \sum_{k=1}^{j}
+\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{j-1}(1-p_{i,n})
+\right) \tag{44}
+\\ &amp;= \sum_{k=1}^{j-1}
+\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{j-1}(1-p_{i,n})
+\right) + \frac{\alpha_{i-1,j}}{\sum_{m=j}^{l}exp(u_{i,m})} \tag{45}
+\\ &amp;= (1-p_{i,j-1})\sum_{k=1}^{j-1}
+\left(\frac{\alpha_{i-1,k}}{\sum_{m=k}^{l}exp(u_{i,m})}\prod_{n=k}^{j-2}(1-p_{i,n})
+\right) + \frac{\alpha_{i-1,j}}{\sum_{m=j}^{l}exp(u_{i,m})} \tag{46}
+\\ &amp;= (1-p_{i,j-1})r_{i,j-1,l} +
+\frac{\alpha_{i-1,j}}{\sum_{m=j}^{l}exp(u_{i,m})} \tag{47}
+\end{align}
+\]</span> 通过式（44）将（43）重写为 <span class="math display">\[
+\beta_{i,j} = exp(u_{i,j})\sum_{l=j}^{T} p_{i,l}
+\prod_{o=j}^{l-1}(1-p_{i,o}) r_{i,j,l} \tag{48}
+\]</span> 经过观察式（47）与式（15）很像，根据式（15-22）可以推导出
+<span class="math display">\[
+r_{i,:,:} = cumprod(1-p_{i,:})cumsum\left(
+\frac{\alpha_{i-1,:}}{AllPartialSums(exp(u_{i,:})cumprod(1-p_{i,:}))}
+\right) \tag{49}
+\]</span> 其中 <span class="math display">\[
+AllPartialSums(x)_{j,l}=  \begin{cases}
+\sum_{m=j}^{l} x_m, \, \, j \leq l
+\\ 1, \, \, j&gt;l
+\end{cases}
+\]</span></p>
+<p>则 <span class="math display">\[
+\beta_{i,:}=exp(u_i,:)\sum_{t=j}^{T}p_{i,:}AllPartialSums(1-p_{i,:})_{:,l}
+\cdot r_{i,:,l}
+\]</span>
+根据作者所描述，该方法目前相比MoChA没有提升，计算复杂度却大大上升</p>
+<p>参考文献</p>
+<p>[1] CHIU C-C, RAFFEL C. Monotonic chunkwise attention [J]. arXiv
+preprint arXiv:171205382, 2017.</p>
+<p>[2] RAFFEL C, LUONG M-T, LIU P J, et al. Online and linear-time
+attention by enforcing monotonic alignments; proceedings of the
+International Conference on Machine Learning, F, 2017 [C]. PMLR.</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>单调注意力机制</tag>
+        <tag>MoChA</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SLU文献</title>
+    <url>/2022/09/10/SLU%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理口语理解相关文献</p>
+<span id="more"></span>
+<p>口语理解（Spoken Language Understanding
+SLU）一般是指对说话人语义进行捕获，被认为是构建对话系统的关键技术</p>
+<p>其一般被分为两个子任务：1.意图检测 2.槽填充</p>
+<figure>
+<img src="img/image-20210408091000346.png"
+alt="image-20210408091000346" />
+<figcaption aria-hidden="true">image-20210408091000346</figcaption>
+</figure>
+<p>如本例中，意图识别判断出意图为WatchMovie，而槽填充则标注出电影类型</p>
+<p>处理意图检测的基本方法，将其看作文本分类问题，利用文本分类的方法 CNN
+[ Xu and Sarikaya, 2013]，RNN [Ravuri and Stolcke,
+2015]，而槽填充任务则视为序列标注，使用的有 CRF [Raymond and Riccardi,
+2007]， RNN [Xu and Sarikaya, 2013] ，LSTM [Ravuri and Stolcke,
+2015]</p>
+<p>最开始两个任务被视为互相独立的，但其实二者是有关联的，因此有人开始考虑两个任务联合起来</p>
+<h3
+id="a-survey-on-spoken-language-understanding-recent-advances-and-new-frontiers">1.《A
+Survey on Spoken Language Understanding: Recent Advances and New
+Frontiers》</h3>
+<p>这是一篇综述，由 Libo Qin， Tianbao Xie
+等人完成，其将文章中的结果和数据放在了<a
+href="https://github.com/yizhen20133868/Awesome-SLU-Survey">GitHub</a>上</p>
+<p>文章开始指出随着深度学习的发展，在ATIS，SNIPS两个数据集上准确率和F1值已经非常高，从而并发出疑问是否SLU已经完美的实现了</p>
+<figure>
+<img src="img/image-20210408094342798.png"
+alt="image-20210408094342798" />
+<figcaption aria-hidden="true">image-20210408094342798</figcaption>
+</figure>
+<p>这显然是否定的，作者从三个角度进行叙述</p>
+<ol type="1">
+<li>对现有SLU方法进行分类和总结</li>
+<li>总结了SLU领域内的数据</li>
+<li>分析现有SLU局限性和面临的挑战</li>
+</ol>
+<h4 id="分类">1.分类</h4>
+<figure>
+<img src="img/image-20210408095435347.png"
+alt="image-20210408095435347" />
+<figcaption aria-hidden="true">image-20210408095435347</figcaption>
+</figure>
+<h5 id="独立模型">1.1 独立模型</h5>
+<p>独立模型对两个子任务进行分别训练，如图（a）</p>
+<p>文章还总结了不同的独立模型在ATIS数据集上的表现，并指出由于两个任务之间没有联系导致共享的知识出现泄露</p>
+<figure>
+<img src="img/image-20210408095717104.png"
+alt="image-20210408095717104" />
+<figcaption aria-hidden="true">image-20210408095717104</figcaption>
+</figure>
+<h5 id="联合模型">1.2 联合模型</h5>
+<p>由于两个子任务之间有明确的关系，因此可以利用联合模型来利用共享知识，这里的联合模型又分为隐式和显式</p>
+<p>隐式联合模型中仅有共享编码器模块如图（b）其没有对交互进行显式建模导致其可解释性差，性能低</p>
+<p>显式联合模型，则引入了交互模块如图（c）这种方式可以明确的控制两个任务之间的交互，这里又可以分为单向交互和双向交互</p>
+<p>其中单向的主要考虑从意图检测到槽填充的信息流，下图为联合模型在ATIS和SNIPS数据集上的表现</p>
+<figure>
+<img src="img/image-20210408100906214.png"
+alt="image-20210408100906214" />
+<figcaption aria-hidden="true">image-20210408100906214</figcaption>
+</figure>
+<h5 id="预训练模型">1.3 预训练模型</h5>
+<p>预训练模型在NLP领域取得了非常不错的结果，这点在SLU上也是一样，预训练模型可以提供丰富的语义特征，有助于提高SLU任务的性能</p>
+<h4 id="新领域和挑战">2.新领域和挑战</h4>
+<h5 id="基于上下文的slu">2.1 基于上下文的SLU</h5>
+<p>有时完成一个对话是需要用户和系统之间来回多轮对话，这就需要考虑上下文，与单轮SLU不同，面向多轮对话的SLU会存在歧义问题</p>
+<p>其主要面临两个挑战：1.语境信息整合：正确区分不同对话历史对当前话语的联系并将其整合到语境信息中。2.远距离障碍：一些对话有非常长的历史，模拟远距离的历史对话并滤除无关噪音是值得研究的</p>
+<h5 id="多意图slu">2.2 多意图SLU</h5>
+<p>多意图SLU即一句话包含有多个意图，根据Gangadharaiah and Narayanaswamy
+[2019]
+的调查发现在亚马逊数据中有52%都是多意图，因此多意图在真实场景中更实用</p>
+<p>其主要面临的问题是：1.多个意图和槽之间的交互，这里与单个意图的SLU有很大的不同。2.缺乏数据</p>
+<h5 id="中文slu">2.3 中文SLU</h5>
+<p>中文SLU面临着分词的挑战以及如何将分词信息结合到模型中</p>
+<h5 id="跨领域slu">2.4 跨领域SLU</h5>
+<p>面临领域知识如何转移以及目标领域没有训练数据时如何将源域中的知识迁移过去等挑战</p>
+<h5 id="跨语言slu">2.5 跨语言SLU</h5>
+<p>将训练好的模型拓展到其它语言中</p>
+<h5 id="低数据slu">2.6 低数据SLU</h5>
+<p>目前面临着1.如何在低数据中充分利用两个任务之间的关系。2.缺乏基准</p>
+<h3
+id="a-survey-of-joint-intent-detection-and-slot-filling-models-in-natural-language-understanding">2.《A
+survey of joint intent detection and slot-filling models in natural
+language understanding》</h3>
+<p>这也是一篇综述主要是总结联合模型，但篇幅比上一篇要长许多，是由HENRY
+WELD，XIAOQI HUANG等人完成的</p>
+<p>文章一开始给出了意图检测和槽填充两个任务的发展历程</p>
+<p>意图检测</p>
+<figure>
+<img src="img/image-20210408140219808.png"
+alt="image-20210408140219808" />
+<figcaption aria-hidden="true">image-20210408140219808</figcaption>
+</figure>
+<p>槽填充</p>
+<figure>
+<img src="img/image-20210408140247750.png"
+alt="image-20210408140247750" />
+<figcaption aria-hidden="true">image-20210408140247750</figcaption>
+</figure>
+<p>接下来文章细致的讲述了每个任务中面临的问题</p>
+<h4 id="意图检测">意图检测：</h4>
+<ol type="1">
+<li>模糊的解释：在特征空间中决策边界的划分，在短文本中由于信息的不充分和不遵循正确的语法使得边界更难确定，文章[Ren
+and Xue 2020] 给出了一种方法，通过一次训练三个样本（标准样本， 正样本，
+负样本）来确定边界</li>
+<li>缺乏标记的数据或小训练集：迁移学习，无监督训练</li>
+<li>多领域、多语种：多层集成，对抗训练</li>
+<li>新兴意图检测：检测并分类新出现的意图。[Xia et al.
+2018]以胶囊为基础进行新意图检测</li>
+<li>看不见的意图：n-gram</li>
+<li>短文本：集成学习</li>
+<li>其它特征工程：DBN，语法特征</li>
+<li>不平衡数据：ATIS在意图方面不平衡</li>
+<li>来自不同意图的词的共现：有可能一个词同时出现在不同意图中</li>
+<li>对上下文时间信息建模：引入上下文</li>
+<li>组合产生意图：比如play_music可以由play和music两个组合而来</li>
+<li>增加模型泛化性：模型组合</li>
+<li>多意图查询：一句话有多个意图</li>
+</ol>
+<h4 id="槽填充">槽填充：</h4>
+<ol type="1">
+<li>标签间的依赖：一些标签之间是有依赖关系的，如B-FromCity和B-ToCity这两个标签有很大可能出现在一个句子中，引入CRF或使用编码解码模型</li>
+<li>长距离依赖：延时神经网络和Transformer模型</li>
+<li>标签偏执问题：CRF</li>
+<li>学习常见单词：一个句子周围的词通常都是相似的</li>
+<li>低资源数据集</li>
+<li>梯度衰减和爆炸：LSTM</li>
+<li>数据稀疏：DBN</li>
+<li>持续学习：引入新的训练数据而不需要重新学习</li>
+<li>不平衡数据：深度增强学习</li>
+<li>看不见的标签：弹性条件随机场</li>
+<li>多任务学习</li>
+<li>延伸到人与人的对话</li>
+</ol>
+<h3
+id="a-co-interactive-transformer-for-joint-slot-filling-and-intent-detection">3.《A
+CO-INTERACTIVE TRANSFORMER FOR JOINT SLOT FILLING AND INTENT
+DETECTION》</h3>
+<p>Libo Qin 和 Tailu Liu等人写的</p>
+<p>作者指出目前的联合模型主要分为两大类，第一类是共享编码器的隐式建模，第二类是显式的使用了意图信息来指导槽填充任务</p>
+<p>这两类第一种只是隐式的建模，第二种只考虑了单向信息流</p>
+<p>因此作者提出了这个模型，其构建了两个任务之间的双向连接，其使用的是Co-Interactive
+Transformer，其与普通Transformer不同的地方在于多了一个协同交互模块，用于建模两个任务之间的关系</p>
+<figure>
+<img src="img/image-20210413151749293.png"
+alt="image-20210413151749293" />
+<figcaption aria-hidden="true">image-20210413151749293</figcaption>
+</figure>
+<p>其先用Bi-LSTM作为编码器，获取得到句子的隐藏状态 <span
+class="math inline">\(H = \{h_1,
+h_2,\dots,h_n\}\)</span>之后对其执行标签注意力，这里的标签注意力是意图和槽填充分开计算的，且这里的注意力计算中是将其后面的解码器的参数weights拿过来当W（没有想明白为什么，应该和标签注意力机制有关需要看一下相关文章）接着就是注意力机制，其中I为意图，S为槽
+<span class="math display">\[
+A=softmax(HW^V)\\
+H_v=H+AW^V\\
+V\in\{I\  or\ S\}
+\]</span> 之后就是Co-Interactive Attention Layer <span
+class="math inline">\(H_S\)</span>和<span
+class="math inline">\(H_V\)</span>被送入该部分，在这一部分两个任务将互相影响</p>
+<p>和Transformer一样其使用了不同的映射矩阵将<span
+class="math inline">\(H\)</span>映射成为<span class="math inline">\(Q\
+K\ V\)</span>之后利用意图的<span
+class="math inline">\(K_I\)</span>作为<span
+class="math inline">\(keys\)</span>把槽的<span
+class="math inline">\(Q_S\)</span>和<span
+class="math inline">\(V_I\)</span>作为<span
+class="math inline">\(queries\)</span>和<span
+class="math inline">\(values\)</span> <span class="math display">\[
+C_S=softmax(\frac{Q_SK_I^T}{\sqrt{d_k}})V_I \\
+H^{\prime}_S=LN(H_S+C_S)
+\]</span> 其中<span class="math inline">\(LN\)</span>是layer
+normalization函数</p>
+<p>接下来就是Feed-forward Network Layer</p>
+<p>首先将<span class="math inline">\(H_S\)</span>和<span
+class="math inline">\(C_S\)</span>拼接在一起，并按照时间步拼接前后的向量，并送入<span
+class="math inline">\(FFN\)</span>层 <span class="math display">\[
+H_{IS}=H^{\prime}_I\oplus H^{\prime}_S\\
+h^t_{(f,t)}=h^{t-1}_{IS}\oplus h^{t}_{IS}\oplus h^{t+1}_{IS}\\
+FFN(H_{f,t})=max(0,\ H_{(f,t)}W_1+b_1)W_2+b_2
+\]</span> 随后将<span
+class="math inline">\(FFN\)</span>结果和之前得到的<span
+class="math inline">\(H^{\prime}_V\)</span>相加并经过归一化送入解码器模块，在意图检测部分，使用了最大池化和全连接，在槽填充部分使用了全连接和槽填充</p>
+<p>最后作者进行了一系列对比试验，得出显式的双向交互模块可以得到更好的效果，其实验结果如下</p>
+<figure>
+<img src="img/image-20210414103346205.png"
+alt="image-20210414103346205" />
+<figcaption aria-hidden="true">image-20210414103346205</figcaption>
+</figure>
+<h3
+id="a-deep-learning-model-with-data-enrichment-for-intent-detection-and-slot-filling">4.《A
+Deep Learning Model with Data Enrichment for Intent Detection and Slot
+Filling》</h3>
+<p>Sławomir Dadas, Jarosław Protasiewicz等人写的</p>
+<p>这篇文章关注的是如何拓展数据集，其利用随机变异和启发式规则将小数据集拓展，并且在槽填充任务上取得更好的效</p>
+<p>其使用的启发式规则是</p>
+<p>1.将相同有槽标签的词汇替换</p>
+<p>list flights from <strong>philadelphia</strong> to
+<strong>dallas</strong> on <strong>friday </strong>→ list flights from
+<strong>los angeles</strong> to <strong>detroit</strong> on
+<strong>monday</strong></p>
+<p>2.随机替换成外部单词</p>
+<p>show me all the <strong>types</strong> of <strong>aircraft</strong> →
+show me all the <strong>kinds</strong> of <strong>airplane</strong>.</p>
+<p>3.顺序变换</p>
+<p>list airports <strong>new york</strong> → <strong>new york</strong>
+list airports</p>
+<p>实验：作者做了一系列对比试验，其原始数据是训练集的子集，分别为100% -
+10%，然后在其上拓展50%，100%，200%</p>
+<figure>
+<img src="img/image-20210415091641729.png"
+alt="image-20210415091641729" />
+<figcaption aria-hidden="true">image-20210415091641729</figcaption>
+</figure>
+<p>实验结果：</p>
+<figure>
+<img src="img/image-20210415092059392.png"
+alt="image-20210415092059392" />
+<figcaption aria-hidden="true">image-20210415092059392</figcaption>
+</figure>
+<p>作者发现其在槽填充任务上拓展数据集总是比原数据集好一些，且在小数据集上改善效果更明显</p>
+<h3
+id="a-joint-model-of-intent-determination-and-slot-filling-for-spoken-language-understanding">5.《A
+Joint Model of Intent Determination and Slot Filling for Spoken Language
+Understanding》</h3>
+<p>作者是Xiaodong Zhang 和 Houfeng Wang</p>
+<p>其主要是构建了一个联合模型</p>
+<figure>
+<img src="img/image-20210415092758858.png"
+alt="image-20210415092758858" />
+<figcaption aria-hidden="true">image-20210415092758858</figcaption>
+</figure>
+<p>作者在Embedding层引入了窗，将前后词的词向量拼接在一起，于此同时还引入了实体标签之后就是经过双向GRU，隐藏状态被用于槽填充，并对其进行最大池化，用来预测意图</p>
+<p>其意图部分的损失函数是交叉熵：<span
+class="math inline">\(\mathcal{L}^u(\theta)=-log\ y^u(l^u)\)</span></p>
+<p>槽填充部分使用的是Max-Margin <span class="math display">\[
+\Delta(l^s,\widehat{l}^s)=\sum_{t=1}^{T}1\{l_t^s\neq\widehat{l}^s_t\}\\
+\mathcal{L}^s(\theta)=max(0,s(\widehat{l}^s,\theta)+\Delta(l^s,\widehat{l}^s)-s(l^s,\theta))
+\]</span> 其最后的总loss就是两个相加，但是在槽填充项有一个比例系数</p>
+<p>最后结果如下：</p>
+<figure>
+<img src="img/image-20210415101340521.png"
+alt="image-20210415101340521" />
+<figcaption aria-hidden="true">image-20210415101340521</figcaption>
+</figure>
+<h3
+id="a-novel-bi-directional-interrelated-model-for-joint-intent-detection-and-slot-filling">6.《A
+Novel Bi-directional Interrelated Model for Joint Intent Detection and
+Slot Filling》</h3>
+<p>作者是Haihong E, Peiqing Niu等人</p>
+<figure>
+<img src="img/image-20210415102453985.png"
+alt="image-20210415102453985" />
+<figcaption aria-hidden="true">image-20210415102453985</figcaption>
+</figure>
+<p>在经过LSTM层后，作者引入了注意力机制得到<span
+class="math inline">\(C_{slot}\)</span>和<span
+class="math inline">\(C_{inte}\)</span>接着送给SF-ID网络，其分为了两种模式SF-First和ID-First</p>
+<p>在SF-First结构中SF先执行，其SF结构利用了<span
+class="math inline">\(C_{slot}\)</span>和<span
+class="math inline">\(C_{inte}\)</span>并计算了两个之间的相关系数<span
+class="math inline">\(f\)</span>： <span class="math display">\[
+f=\sum V*tanh(c^i_{slot}+W*c_{inte})
+\]</span> 利用<span class="math inline">\(f\)</span>计算增强向量<span
+class="math inline">\(r^i_{slot}=f \cdot
+c^i_{slot}\)</span>并将其送入ID网络</p>
+<p><img src="img/image-20210415104117377.png"
+alt="image-20210415104117377" /> <span class="math display">\[
+r=\sum_{i=1}^T \alpha_i \cdot r^i_{slot}\\
+\alpha_i = softmax(e_{i,j})\\
+e_{i,j}=W*tanh(V_1*r^i_{slot}+V_2*h_j+b)\\
+r_{inte}=r+c_{inte}
+\]</span> 在得到<span
+class="math inline">\(r_{inte}\)</span>后将其送入SF网络用于替代最开始的<span
+class="math inline">\(C_{inte}\)</span>,之后两个子网之间可以反复交换信息，在完成迭代后其增强向量<span
+class="math inline">\(r_{slot},r_{inte}\)</span>和LSTM的隐藏向量相拼接再利用CRF和softmax进行预测槽值和意图</p>
+<p>如果是ID-First则与之前的计算类似只是替换成初始的<span
+class="math inline">\(c_{slot}^j,h_i\)</span> <span
+class="math display">\[
+r=\sum_{i=1}^T \alpha_i \cdot h_i\\
+\alpha_i = softmax(e_{i,j})\\
+e_{i,j}=W*\sigma(V_1*h_i+V_2*c^j_{slot}+b)\\
+\]</span> 其实验结果如下：</p>
+<figure>
+<img src="img/image-20210415110006691.png"
+alt="image-20210415110006691" />
+<figcaption aria-hidden="true">image-20210415110006691</figcaption>
+</figure>
+<figure>
+<img src="img/image-20210415110130572.png"
+alt="image-20210415110130572" />
+<figcaption aria-hidden="true">image-20210415110130572</figcaption>
+</figure>
+<figure>
+<img src="img/image-20210415110143291.png"
+alt="image-20210415110143291" />
+<figcaption aria-hidden="true">image-20210415110143291</figcaption>
+</figure>
+<p>适当的迭代次数是可以提高模型性能的</p>
+<h3
+id="a-stack-propagation-framework-with-token-level-intent-detection-for-spoken-language-understanding">7.《A
+Stack-Propagation Framework with Token-Level Intent Detection for Spoken
+Language Understanding》</h3>
+<p>Libo Qin, Wanxiang Che等人</p>
+<p>这个文章比较新颖的地方在于引入了字符级别的意图</p>
+<p>作者一上来解释了多任务框架和联合模型的区别</p>
+<figure>
+<img src="img/image-20210415141152863.png"
+alt="image-20210415141152863" />
+<figcaption aria-hidden="true">image-20210415141152863</figcaption>
+</figure>
+<p>对于多任务框架其两个任务之间没有显式的传递信息，而联合模型可以在确保可微的情况下实现信息的显式传递</p>
+<p>作者提出的模型结构如下：</p>
+<figure>
+<img src="img/image-20210415142141866.png"
+alt="image-20210415142141866" />
+<figcaption aria-hidden="true">image-20210415142141866</figcaption>
+</figure>
+<p>其先经过一个带Self-Attention的双向LSTM层，对原始数据进行编码得到最后的向量<span
+class="math inline">\(E\)</span></p>
+<p>接下来就是字符级别的意图检测，其将意图检测视为标注模型，对于输入的序列<span
+class="math inline">\(x=(x_1,\dots,x_T)\)</span>得到一个意图标记序列<span
+class="math inline">\(O^I=(O_1^I,\dots,O_T^I)\)</span>最终整个句子的意图是全体字符投票得出的</p>
+<p>这里的字符级别意图解码器利用的是单层LSTM进行解码：<span
+class="math inline">\(h^I_i=f(h^I_{i-1},y^I_{i-1},e_i)\)</span>之后将<span
+class="math inline">\(h_i^I\)</span>线性变化做softmax得到意图分布<span
+class="math inline">\(y^I_i\)</span> <span class="math display">\[
+y^I_i=softmax(W^I_hh^I_i)\\
+o^I_i=argmax(y^I_i)\\
+o^I=argmax\sum_{i=1}^m\sum_{j=1}^{n_I}\alpha_j[o^I_i=j]
+\]</span> 而在槽填充部分使用的是相同的解码器：<span
+class="math inline">\(h^S_i=f(h^S_{i-1},y^S_{i-1},y^I_i\oplus
+e_i)\)</span></p>
+<p>其实验结果如下：</p>
+<figure>
+<img src="img/image-20210415152147533.png"
+alt="image-20210415152147533" />
+<figcaption aria-hidden="true">image-20210415152147533</figcaption>
+</figure>
+<p>其结果表明该方法可以有效</p>
+<h3
+id="balanced-joint-adversarial-training-for-robust-intent-detection-and-slot-filling">8.《Balanced
+Joint Adversarial Training for Robust Intent Detection and Slot
+Filling》</h3>
+<p>Xu Cao, Deyi Xiong等人，主要关注的是联合模型中的对抗训练问题</p>
+<figure>
+<img src="img/image-20210419092952530.png"
+alt="image-20210419092952530" />
+<figcaption aria-hidden="true">image-20210419092952530</figcaption>
+</figure>
+<p>未经过对抗训练的模型可能因为小的扰动而发生判断错误</p>
+<p>文章使用的联合模型是这样的</p>
+<figure>
+<img src="img/image-20210419093701970.png"
+alt="image-20210419093701970" />
+<figcaption aria-hidden="true">image-20210419093701970</figcaption>
+</figure>
+<p>其使用的是FGM对抗训练</p>
+<h3 id="bert-for-joint-intent-classification-and-slot-filling">9.《BERT
+for Joint Intent Classification and Slot Filling》</h3>
+<p>Qian Chen，Zhu Zhuo，Wen Wang</p>
+<p>将BERT应用于联合模型</p>
+<figure>
+<img src="img/image-20210419101637833.png"
+alt="image-20210419101637833" />
+<figcaption aria-hidden="true">image-20210419101637833</figcaption>
+</figure>
+<figure>
+<img src="img/image-20210419103217174.png"
+alt="image-20210419103217174" />
+<figcaption aria-hidden="true">image-20210419103217174</figcaption>
+</figure>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>SLU</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PyTorch 单机多卡训练方法</title>
+    <url>/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/</url>
+    <content><![CDATA[<p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
+<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="构造数据">2.构造数据</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
+<h4 id="模型初始化">3.模型初始化</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="训练设置">4.训练设置</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
+<h4 id="保存模型">5.保存模型</h4>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>DDP</tag>
+        <tag>Pytorch</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ASR文献</title>
+    <url>/2022/09/10/ASR%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理ASR相关文献</p>
+<span id="more"></span>
+<h2 id="asr">ASR</h2>
+<h3
+id="a-re-thinking-asr-modeling-framework-using-attention-mechanisms">1.《A
+Re-thinking ASR Modeling Framework using Attention Mechanisms》</h3>
+<p>Chih-Ying Yang and Kuan-Yu Chen</p>
+<p>作者使用注意力机制来改进 <strong>ASR</strong></p>
+<p>作者提出的模型名为 <strong>re-thinking
+ASR</strong>（<strong>rt-ASR</strong>）</p>
+<figure>
+<img src="img\image-20220217095143475.png"
+alt="image-20220217095143475" />
+<figcaption aria-hidden="true">image-20220217095143475</figcaption>
+</figure>
+<p>作者的模型之所以叫 <strong>re-thinking ASR</strong>
+是因为它对假设的语言规律进行了计算，作者是希望通过重新思考假设的语言规律以及文本和声学特征来产生更准确的识别结果</p>
+<p>其主要包括 <strong>Encoder</strong> 和 <strong>Decoder</strong>
+两部分，其中 <strong>Decoder</strong> 部分使用的是 <strong>modified
+Transformer</strong>，其具有 <strong>mixed attention</strong> 和
+<strong>self-and-mixed attention</strong></p>
+<p>假设语音序列为 <span
+class="math inline">\(X=\{x_1,\dots,x_T\}\)</span> 对应的文本序列为
+<span class="math inline">\(Y=\{y_1,\dots,y_L\}\)</span></p>
+<p>在 <strong>特征提取</strong> 部分作者使用两层 <strong>CNN</strong>
+来获取语音特征，并设置步长为2，从而使得特征数减少到 <span
+class="math inline">\(\frac{1}{4}T\)</span> ,接下来引入位置编码，并通过
+<strong>N</strong> 层 <strong>Transformer</strong> 得到语音的编码特征
+<span
+class="math inline">\(H^\alpha=\{h^{\alpha}_1,\dots,h^{\alpha}_{T/4}\}\)</span></p>
+<p>在解码器部分作者想的是尽可能利用多模态信息，其输入是 <span
+class="math inline">\(\{Y^f,Y^s_{1:(m-1)}\}\)</span>，其中 <span
+class="math inline">\(Y^f=\{y^f_1,\dots,y^f_{L&#39;}\}\)</span>，是由
+<strong>ASR 假设（First Pass ASR）</strong> 得到的预测解码序列，而 <span
+class="math inline">\(Y^s_{1:(m-1)}=\{y^s_1,\dots,y^s_{m-1}\}\)</span>则是
+<strong>rt-ASR</strong>
+模型的输出，两个部分分别加上位置编码和段落编码，送入
+<strong>Decoder</strong></p>
+<p>在 <strong>mixed attention</strong> 部分 <span
+class="math display">\[
+Q_{mixed}=Y^s_{1:(m-1)}W^Q_{mixed}
+\\K_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^K_{mixed}
+\\V_{mixed}=[Y^f;Y^s_{1:(m-1)}]W^V_{mixed}
+\\
+\overline{Y}^s_{1:(m-1)}=softmax(\frac{Q_{mixed}(K_{mixed})^T}{\sqrt{d}})V_{mixed}
+\]</span> 这里生成的 <span
+class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span>
+还拥有了未来的信息（由于 <strong>First Pass ASR</strong>）</p>
+<p>接下来利用 <strong>self-and-mixed attention</strong>
+来混合文本和声音信息，这一步除了利用 <span
+class="math inline">\(H^\alpha\)</span> 和 <span
+class="math inline">\(\overline{Y}^s_{1:(m-1)}\)</span> 得到 <span
+class="math inline">\(\overline{\overline{Y}}^s_{1:(m-1)}\)</span>
+以外，还计算了 <span class="math inline">\(H^\alpha\)</span>
+的自我注意力 <span
+class="math inline">\(\overline{H}^\alpha\)</span></p>
+<p>作者实验了两种 <strong>First Pass ASR</strong> 模型，发现都有
+<strong>3%</strong> 左右的提高</p>
+<figure>
+<img
+src="C:\Users\QYK\AppData\Roaming\Typora\typora-user-images\image-20220217110237148.png"
+alt="image-20220217110237148" />
+<figcaption aria-hidden="true">image-20220217110237148</figcaption>
+</figure>
+<h3
+id="specaugment-a-simple-data-augmentation-method-for-automatic-speech-recognition">2.《SpecAugment:
+A Simple Data Augmentation Method for Automatic Speech
+Recognition》</h3>
+<p>Daniel S. Park, William Chan, Yu Zhang, Chung-Cheng Chiu, Barret
+Zoph, Ekin D. Cubuk, Quoc V. Le</p>
+<p>作者提出了一种简单的用于 <strong>ASR</strong> 的数据增强的方法
+<strong>SpecAugment</strong></p>
+<p>作者提出的直接作用于 <strong>mel</strong> 频谱</p>
+<p>主要有三种方法，<strong>Time warping、Frequency masking、Time
+masking</strong></p>
+<p><strong>Time warping</strong>
+是指将图像除边界点外部分进行折叠，产生的效果类似水平平移</p>
+<p><strong>Frequency masking</strong> 则是在屏蔽某一特定宽度的频率值</p>
+<p><strong>Time masking</strong> 是屏蔽某一特定宽度的时间值</p>
+<figure>
+<img src="img\image-20220222102925728.png"
+alt="image-20220222102925728" />
+<figcaption aria-hidden="true">image-20220222102925728</figcaption>
+</figure>
+<h2 id="asr非自回归模型">ASR非自回归模型</h2>
+<p>目前的大部分序列到序列模型都是自回归模型，即利用上一解码步骤的结果来预测当前时间步的结果，但这样的自回归性质会导致在inference时出现很大的延迟，而非自回归模型则可以摆脱这种依赖，提高推理速度</p>
+<h3
+id="spike-triggered-non-autoregressive-transformer-for-end-to-end-speech-recognition">1.《Spike-Triggered
+Non-Autoregressive Transformer for End-to-End Speech Recognition》</h3>
+<p>中科院自动化所的文章 Zhengkun Tian, Jiangyan Yi, Jianhua Tao, Ye Bai,
+Shuai Zhang, Zhengqi Wen</p>
+<p>文章提出了讲非自回归网络应用到语音识别上</p>
+<p>具体使用的是 <strong>Non-Autoregressive
+Transformer（NAT）</strong>。一般的 <strong>NAT</strong>
+会采用固定的长度的掩码序列来作为输入，从而预测目标序列。因此该固定长度对模型性能有很大的影响，目前主要的方法有
+1. 引入神经网络来预测目标长度，但该方法需要对不同长度像本进行采样。2.
+设定固定长度，由于为了确保模型性能，长度往往会比目标序列长很多。3. 利用
+<strong>CTC</strong>
+损失代替交叉熵损失函数，但在inference时会生成重复标记和空白并不会提高infernece速度</p>
+<p>因此作者提出了 <strong>Spike-Triggered Non-Autoregressive
+Transformer（ST-NAT）</strong></p>
+<figure>
+<img src="img/image-20211119160633080.png"
+alt="image-20211119160633080" />
+<figcaption aria-hidden="true">image-20211119160633080</figcaption>
+</figure>
+<p>其主要由编码器，解码器，CTC组成，其中的编码器和解码器和Transformer类似</p>
+<p>首先对输入的语音序列进行卷积和添加位置信息，之后送入到编码器</p>
+<p>文章的主要创新点在引入CTC峰值模块对目标序列长度进行预测，将编码器的输出输入到CTC网络中，当CTC输出高过阈值之后记录触发阈值来估计长度</p>
+<p>随后做实验证明了CTC可以准确预测长度，并且也可以正确触发</p>
+<figure>
+<img src="img/image-20211119163056593.png"
+alt="image-20211119163056593" />
+<figcaption aria-hidden="true">image-20211119163056593</figcaption>
+</figure>
+<figure>
+<img src="img/image-20211119162801227.png"
+alt="image-20211119162801227" />
+<figcaption aria-hidden="true">image-20211119162801227</figcaption>
+</figure>
+<h3
+id="non-autoregressive-transformer-for-speech-recognition">2.《Non-Autoregressive
+Transformer for Speech Recognition》</h3>
+<p>Nanxin Chen，Shinji Watanabe，Jesús Villalba，Najim Dehak</p>
+<p>作者提出了两种非自回归模型：A-CMLM，A-FMLM</p>
+<p>目前深层Transformer已经在ASR上得到了很好的应用，但是由于其是自回归模型，在推理阶段会很难并行，消耗大量计算量</p>
+<p>因此作者提出使用非自回归模型，并支持目前在ASR领域的
+<strong>Non-Autoregressive</strong> 普遍依赖于 <strong>CTC</strong>
+，作者的灵感来自于 <strong>CMLM</strong></p>
+<p><img src="img/image-20211122141950209.png" /></p>
+<p>在传统的 <strong>ASR</strong>
+方面解码器根据之前的解码结果生成当前时间步骤的解码 <span
+class="math display">\[
+P(y_l|y_{&lt;l},x)=P_{dec}(y_l|y_{&lt;l},f_l(h))
+\]</span> 在训练阶段，可以通过给予正确的输入以达到并行解码，但在
+<strong>inference</strong> 的时候则需要一步步解码</p>
+<p>目前使用 <strong>Non-Autoregressive</strong> 有两种方法 一种是基于
+<strong>CTC</strong> 的方法，另一种则是多次迭代来完成预测</p>
+<p>作者提出的是 <strong>Audio-Conditional Masked Language Model
+(A-CMLM)</strong> 其思想是从以前结算中得到的部分替代自回归模型中的 <span
+class="math inline">\(y_{&lt;l}\)</span> 在模型中引入了
+<strong>[MASK]</strong> 标签，这里用<span
+class="math inline">\(L_M\)</span>和<span
+class="math inline">\(L_U\)</span>来表示被 <strong>MASK</strong>
+的部分和未被 <strong>MASK</strong> 的部分 <span class="math display">\[
+P(y_{L_M}|y_{L_U},x)=\prod_{l\in l_M}P_{dec}(y_l|y_{L_U},f_l(h))
+\]</span> 其过程如上图第二部分所示，在训练阶段随机 <strong>MASK</strong>
+部分，然后要求模型根据输入去预测这些被 <strong>MASK</strong>
+的部分，这里作者假设了预测被 <strong>MASK</strong>
+的部分之间是互相独立的，因此才可以实现概率上的相乘</p>
+<p>同时作者在 <strong>A-CMLM</strong> 的基础上提出了改进后的
+<strong>Audio-Factorized Masked Language Model (A-FMLM)</strong>
+，由于在 <strong>A-CMLM</strong> 中训练和 <strong>inference</strong>
+步骤之间还是存在一定差距，<strong>inference</strong>
+要求初始输入全部都是被 <strong>MASK</strong> 的，而
+<strong>A-CMLM</strong> 训练中还是需要有部分未被
+<strong>MASK</strong>的存在。为了缓解这种问题，作者提出了
+<strong>A-FMLM</strong></p>
+<p>作者假设输出长度为 <span class="math inline">\(L\)</span>，迭代次数为
+<span class="math inline">\(K\)</span> <span class="math display">\[
+Z_0=\phi
+\\ Z_K=[0,1,\dots,L-1]
+\\ \forall i \ \ Z_i\subset Z_{i+1}
+\]</span> 这样训练和推理过程都可以变为： <span class="math display">\[
+P(y|h)=\prod^{K}_{i=1}\prod_{l\in Z_i\cap
+\overline{Z}_{i-1}}P_{dec}(y_L|y_{Z_{i-1}},f_l(h))
+\]</span> 这样定义以后，自回归模型就变成了 <span
+class="math inline">\(K=L,Z_i=[0,1,\dots,i-1]\)</span> 的一种特例</p>
+<p>在推理过程中，使用了 <strong>easy decoding</strong>
+在第一次预测的时候先预测最可靠的标记，之后根据该结果进行后面的迭代</p>
+<p><img src="img/image-20211122164521127.png" /></p>
+<h3
+id="listen-attentively-and-spell-once-whole-sentence-generation-via-a-non-autoregressive-architecture-for-low-latency-speech-recognition">3.《Listen
+Attentively, and Spell Once: Whole Sentence Generation via a
+Non-Autoregressive Architecture for Low-Latency Speech
+Recognition》</h3>
+<p>中科院自动化所 Ye Bai, Jiangyan Yi, Jianhua Tao, Zhengkun Tian,
+Zhengqi Wen, Shuai Zhang</p>
+<p>作者指出上一篇文章中提到的模型存在着仍然需要解码器多路前向传播来完成所有的
+<strong>[MASK]</strong> 预测</p>
+<p>作者认为可以通过提取语义，在不依赖显式语言模型的情况下生成标记序列，为此作者提出了
+<strong>LASO (Listen Attentively, and Spell Once)</strong></p>
+<figure>
+<img src="img/image-20211123101323894.png"
+alt="image-20211123101323894" />
+<figcaption aria-hidden="true">image-20211123101323894</figcaption>
+</figure>
+<p>作者认为可以从声音序列中提取出语言语义表示（这里指的是标签之前的关系），基于此作者定义基于位置的
+<strong>token</strong> 预测为 <span class="math display">\[
+z=Encoder(x)
+\\ P(y_i|x)=SummarizeAndDecode(z),\ \ i=1,2,\dots,L
+\]</span> 其中 <span class="math inline">\(z_i\)</span>
+是经过编码器表示后的隐藏表示序列</p>
+<p><strong>LASO</strong> 主要由三个部分组成，编码器，position dependent
+summarizer（PDS），解码器</p>
+<p>其中 <strong>PDS</strong> 负责将编码器输出总结为
+<strong>token</strong> 级别的表示，解码器则在每个位置生成
+<strong>token</strong></p>
+<p>编码器部分和常见的 <strong>ASR Transformer</strong> 编码器一致</p>
+<p>作者认为文本是高度压缩的语义表示，多个声学特征才能对应一个文本标记，为此作者设计了
+<strong>PDS</strong> 来总结编码器表示，并根据token位置来重新组织</p>
+<p>在 <strong>PDS</strong> 中有两个注意力部分，第一部分的
+<strong>Queries</strong> 是最大长度 <strong>L</strong>
+的位置编码，第二部分的 <strong>Queries</strong>
+是上一部分的输出，两部分的 <strong>Keys</strong> 和
+<strong>Values</strong> 都是编码器提供的，作者使用的是正弦函数来编码位置
+<span class="math display">\[
+pe_{i,2j}=sin(i/10000^{2j/D_m})
+\\ pe_{i,2j+1}=cos(i/10000^{2j/D_m})
+\]</span></p>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>ASR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Streaming ASR</title>
+    <url>/2022/09/10/Streaming%20ASR/</url>
+    <content><![CDATA[<p>整理流式ASR (Streaming ASR)相关文献 <span id="more"></span></p>
+<h2
+id="transformer-based-online-speech-recognition-with-decoder-end-adaptive-computation-steps">《TRANSFORMER-BASED
+ONLINE SPEECH RECOGNITION WITH DECODER-END ADAPTIVE COMPUTATION
+STEPS》</h2>
+<p>Mohan Li, Ca ̆ta ̆lin Zorila ̆ and Rama Doddipatla</p>
+<p>作者提出了 <strong>Decoder- end Adaptive Computation Steps,
+DACS</strong> 算法</p>
+<h3 id="introduction">1. INTRODUCTION</h3>
+<p>作者说明目前 End-to-End 模型普遍使用的都是 Transformer
+结构，但是该结构在面对 online speech recognition 时存在以下问题：</p>
+<ol type="1">
+<li>需要整个语句输入来计算全局的注意力</li>
+<li>每次都会对全部编码器输出执行
+normalisation，随着输出语句长度的增加，其计算成本和内存消耗越来越高</li>
+</ol>
+<p>因此需要一种新的方式来计算，以往尝试的方法有
+<strong>MoChA，sMoChA，MTA</strong>，这些方法都是基于
+<strong>Bernoulli</strong> 分布。 但是在 Transformer
+中由于使用的是多头注意力机制会出现，不同 head
+注意的时间点不同或者直到语音结束才触发的情况。</p>
+<p>作者提出的 <strong>DACS</strong> 算法则可以解决上述问题</p>
+<h3 id="transformer-for-online-asr">2. TRANSFORMER FOR ONLINE ASR</h3>
+<p>首先作者介绍了 baseline Transformer
+结构，随后介绍了几种基础的在线注意力计算方法包括
+<strong>HMA，MoChA，sMoChA，MTA</strong></p>
+<p>其中 <strong>sMoChA，MTA</strong> 都是在之前的模型上进一步简化</p>
+<h3
+id="online-transformer-asr-with-decoder-end-adaptive-computation-steps">3.
+ONLINE TRANSFORMER ASR WITH DECODER-END ADAPTIVE COMPUTATION STEPS</h3>
+<p>作者指出在线注意力机制的主要挑战在于延迟的控制，作者将解码的权重改为累积式的，达到阈值后触发，如过长时间未触发，则强制执行以控制延迟。</p>
+<p>作者是在 <strong>ACS</strong>
+算法的基础上改进而来，作者将其应用到编码器和解码器之间的相互注意力计算上</p>
+<p>对第 <span class="math inline">\(l\)</span> 解码层中的 <span
+class="math inline">\(head_h\)</span> 来说，energy
+的计算如下，在每个解码器时间步 <span class="math inline">\(i\)</span>
+对每个编码器时间步 <span class="math inline">\(j\)</span> 计算 <span
+class="math display">\[
+e_{i,j}=\frac{q_{i-1}k_j^T}{\sqrt{d_k}}
+\]</span> 随后计算概率 <span class="math inline">\(p_{i,j}\)</span>
+<span class="math display">\[
+p_{i,j}=Sigmoid(e_{i,j})
+\]</span> 从 <span class="math inline">\(j=1\)</span> 开始，一直计算
+<span class="math inline">\(P_{i,j}\)</span>
+的累积和直到其和大于1，但是也有可能出现 <span
+class="math inline">\(p_{i,:}\)</span>
+一直很小，此时就需要设置最大等待值 <span
+class="math inline">\(M\)</span>，以此来控制延迟</p>
+<p>因此总的来说区间长度 <span class="math inline">\(N_i\)</span>
+的计算为： <span class="math display">\[
+N_i=min\{min\{n:\sum_{j=1}^n p_{i,j}&gt;1\},M\}
+\]</span> 此时 <span class="math inline">\(c_i\)</span> 的计算变为：
+<span class="math display">\[
+c_i=\sum_{j=1}^{N_i}p_{i,j}v_j
+\]</span> 对于多头注意力机制来说，必须强制每个头的 <span
+class="math inline">\(N_i\)</span>
+相等，此处作者设置为全部头中的最大值</p>
+<p>接下来给出 Infernece 期间的伪代码：</p>
+<figure>
+<img src="img\image-20220614155611780.png"
+alt="image-20220614155611780" />
+<figcaption aria-hidden="true">image-20220614155611780</figcaption>
+</figure>
+<p>可以看到在infernece中每次计算的范围是 <span
+class="math inline">\(t_{i-1}\)</span> 到 <span
+class="math inline">\(t_{i-1}+M\)</span></p>
+<p>在训练过程中的计算则需要一个 MASK 矩阵来屏蔽剩余信息： <span
+class="math display">\[
+P=sigmod(\frac{QK^T}{\sqrt{d_k}})
+\\ M=ShiftRight(cumsum(P)&gt;1)
+\\ DACS(Q,K,V)=M⊙PV
+\]</span> 其中 <span class="math inline">\(M\)</span> 就是 MASK 矩阵</p>
+<h3 id="experiments">4. EXPERIMENTS</h3>
+<p>文章主体采用的是 chunk 形式，通过设置 <span
+class="math inline">\(N_c,N_l,N_r\)</span> 三个参数来控制 chunk
+大小，其中训练时只取中间 <span class="math inline">\(N_c\)</span>
+部分</p>
+<figure>
+<img src="img\image-20220614155703789.png"
+alt="image-20220614155703789" />
+<figcaption aria-hidden="true">image-20220614155703789</figcaption>
+</figure>
+<figure>
+<img src="img\image-20220614155247371.png"
+alt="image-20220614155247371" />
+<figcaption aria-hidden="true">image-20220614155247371</figcaption>
+</figure>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>Streaming ASR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Transformer</title>
+    <url>/2022/09/10/Transformer/</url>
+    <content><![CDATA[<p>介绍Transformer基础知识</p>
+<span id="more"></span>
+<p>Transformer避免使用循环神经网络，只使用注意力机制，其分为两个模块左边为encoder右边为decoder</p>
+<p><img src="img\image-20210112141734011.png" alt="image-20210112141734011" style="zoom: 80%;" /></p>
+<h3 id="encoder">1.Encoder</h3>
+<p>根据论文，Encoder由6个相同的layer组成，即图中左边单元，每个layer里面又有2个sub-layer分别为
+multi-head self-attention mechanism 和 fully connected feed-forward
+network，在每个sub-layer后加入了residual connection（残差连接）和layer
+normalization，因此每个sub-layer的输出为<span
+class="math inline">\(LayerNorm(x+Sublayer(x))\)</span>，为了引入残差连接，所有sub-layer和Embedding层输出的维度都是<span
+class="math inline">\(d_{model}=512\)</span></p>
+<h3 id="decoder">2.Decoder</h3>
+<p>与Encoder类似，但比其多一个sub-layer用于计算Encoder层输出的attention，同时由于模型是自回归（后面的token只取决于前面的token），因此在Decoder端加入mask保证训练和推理阶段的一致性，此处的mask处理是生成一个下三角全为0上三角为负无穷的矩阵，与之前的Scaled
+Score相加即可，此后再经过softmax后上三角全部变为0</p>
+<p><img src="img\zudAEJCTB5pFoZh.png" alt="img" style="zoom:60%;" /></p>
+<p><img src="img\U3FCQ0.png" alt="img" style="zoom:67%;" /></p>
+<h3 id="attention">3.Attention</h3>
+<p><span class="math display">\[
+Attention(Q,K,V)=softmax(\frac{QK^T}{\sqrt{d_k}})V
+\]</span></p>
+<p>在论文中其attention机制由于除去了<span
+class="math inline">\(\sqrt{d_k}\)</span>因此被叫做Scaled Dot-Product
+Attention，<span
+class="math inline">\(d_k\)</span>为输入的query和key的维度，作者同时解释了为何使用点积形式的attention，因为其可以写成矩阵乘法以便计算。同时作者说经过其测试，较小的<span
+class="math inline">\(d_k\)</span>值时，加性和点积计算结果差不多，但随着<span
+class="math inline">\(d_k\)</span>增大，加性点积表现效果更好，他们猜测是点积放大了幅度，因此进行归一化处理，即除以<span
+class="math inline">\(\sqrt{d_k}\)</span>（假设原来<span
+class="math inline">\(q\)</span>和<span
+class="math inline">\(k\)</span>的方差为1，则点积后方差会变为<span
+class="math inline">\(d_k\)</span>）</p>
+<p><img src="img\image-20210112155228788.png" alt="image-20210112155228788" style="zoom: 80%;" /></p>
+<h3 id="multi-head-attention">4.Multi-Head Attention</h3>
+<p>论文中使用的是Multi-Head Attention
+其将V,K,Q经过h次线性变换分别计算注意力值再拼接起来 <span
+class="math display">\[
+MultiHead(Q,K,V)=Concat(head_1,\cdots,head_h)W^O\\where\ \
+head_i=Attention(QW_i^Q,KW_i^K,VW_i^V)\\
+W_i^Q\in\mathbb{R}^{d_{model}\times
+d_k},W_i^k\in\mathbb{R}^{d_{model}\times
+d_k},W_i^V\in\mathbb{R}^{d_{model}\times
+d_v},W_i^O\in\mathbb{R}^{hd_v\times d_{model}}
+\]</span>
+使用这种注意力机制，其可以关注不同子空间的信息，相当于寻找序列不同角度之间的关系，最后再拼接在一起</p>
+<p>在论文中设置<span class="math inline">\(h=8\)</span>，<span
+class="math inline">\(d_k=d_v=d_{model}/h=64\)</span>总的计算量与single-head
+attention相比保持不变</p>
+<h3 id="position-encoding">5.Position Encoding</h3>
+<p>由于模型没有递归和卷积网络，因此需要引入位置编码来表征位置 <span
+class="math display">\[
+PE_{(pos,2i)}=sin(pos/10000^{2i/d_{model}})\\
+PE_{(pos,2i+1)}=cos(pos/10000^{2i/d_{model}})
+\]</span> 位置编码和embedding层维数相同，因此可以直接相加</p>
+<p>这里的Position Encoding是两个维度的函数可以将其看作是<span
+class="math inline">\(PE_{t,\omega_i}=sin(w_i\cdot t)\)</span>这里<span
+class="math inline">\(t\)</span>指代<span
+class="math inline">\(pos\)</span>，随着维度的增加，<span
+class="math inline">\(\omega_i\)</span>逐渐减少，因此在</p>
+<p>不同维度上周期在变换，在同一维度上，呈显出随位置变化的周期性</p>
+<p><img src="img\image-20210113100222041.png" alt="image-20210113100222041" style="zoom:67%;" /></p>
+<h3 id="padding-mask">6.Padding Mask</h3>
+<p>由于通常会将多个句子一同训练，对于句子之间长度不同此时需要用0进行补齐，这个过程称为padding</p>
+<p>但是这在进行softmax时会产生问题</p>
+<p><span class="math display">\[
+\sigma(z_i)=\frac{e^{z_i}}{\sum e^{z_j}}
+\]</span> 由于<span
+class="math inline">\(e^0=1\)</span>是有值的，意味着padding部分参与运算，因此需要mask操作让这些部分不参与，一般是给一个很大的负数偏置</p>
+<h3 id="layer-normalization">7.Layer Normalization</h3>
+<p>Layer Normalization
+的作用是把神经网络中隐藏层归一为标准正态分布，也就是 i.i.d
+独立同分布，以起到加快训练速度，加速收敛的作用 <span
+class="math display">\[
+\mu_j=\frac{1}{m}\sum_{i=1}^mx_{ij}\\
+\sigma_j^2=\frac{1}{m}\sum_{i=1}^m(x_{ij}-\mu_j)^2\\
+LayerNorm(x)=\frac{x_{ij}-\mu_j}{\sqrt{\sigma^2+\epsilon}}
+\]</span>
+<img src="img\MJnY847uNvWSaTk.png" alt="img" style="zoom:80%;" /></p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Transformer</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Visualizing the Loss Landscape of Neural Nets</title>
+    <url>/2022/11/02/Visualizing%20the%20Loss%20Landscape%20of%20Neural%20Nets/</url>
+    <content><![CDATA[<p>Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein</p>
+<p>作者使用 “filter normalization” 方法对Loss Landscape 进行可视化
+<span id="more"></span></p>
+<p>假设神经网络的输入为<span
+class="math inline">\(\{x_i\}\)</span>，其对应的标签为<span
+class="math inline">\(\{y_i\}\)</span>，损失函数为<span
+class="math inline">\(L(\theta)=\frac{1}{m}\sum_{i=1}^ml(x_i,y_i;\theta)\)</span>，其中<span
+class="math inline">\(\theta\)</span>为神经网络参数，其一般数量都非常庞大，因而其位于高维空间。但是我们只能使用一维或二维的方法对其进行可视化。</p>
+<h2 id="dimensional-linear-interpolation">1-Dimensional Linear
+Interpolation</h2>
+<p>一维线性插值，该方法提前选定两个参数<span
+class="math inline">\(\theta\)</span>和<span
+class="math inline">\(\theta&#39;\)</span>，并绘制这两个参数连线上的损失函数值，对于该连线我们可以使用如下方法将其参数化：
+<span class="math display">\[
+\theta(\alpha)=(1-\alpha)\theta+\alpha\theta&#39;
+\]</span> 通过绘制函数<span
+class="math inline">\(f(\alpha)=L(\theta(\alpha))\)</span>来实现可视化。其中<span
+class="math inline">\(\theta\)</span>一般被选定为初始值，<span
+class="math inline">\(\theta&#39;\)</span>被选为经过训练后的参数。</p>
+<p>但是一维线性插值方法存在缺点：一维图很难对非凸性进行可视化，该方法不考虑网络中的不变性，对称性和批量归一化</p>
+<h2 id="contour-plots-random-directions">Contour Plots &amp; Random
+Directions</h2>
+<p>等高线和随机方向，该方法需要选取一个中心点<span
+class="math inline">\(\theta^*\)</span>，并选择两个方向<span
+class="math inline">\(\delta\)</span>和<span
+class="math inline">\(\eta\)</span>，然后绘制如下函数 <span
+class="math display">\[
+f(\alpha,\beta)=L(\theta^*+\alpha\delta+\beta\eta)
+\]</span>
+该方法被用于探索不同最小化方法的轨迹，但是由于2D绘图的计算量，该方法会导致小区域上的分辨率较低</p>
+<p>因此作者提出使用 Filter-Wise Normalization</p>
+<h2 id="filter-wise-normalization">Filter-Wise Normalization</h2>
+<p>由于网络具有尺度变换不变性，因此常规的2D绘图会导致两个不同图之间无法比较</p>
+<p>为了消除该影响，作者对其进行归一化，首先生成一个和<span
+class="math inline">\(\theta\)</span>维度一样的高斯采样的向量<span
+class="math inline">\(d\)</span>，再根据<span
+class="math inline">\(\theta\)</span>对其进行归一化 <span
+class="math display">\[
+d_{i,j}\gets \frac{d_{i,j}}{||d_{i,j}||}||\theta_{i,j}||
+\]</span> 作者通过上述的方法来对 minimizers
+的锐度与泛化性之间的关系进行研究，并和未归一化的图进行对比</p>
+<p>目前广泛的认知是损失函数的平坦性和泛化性之间的关系是小批量的SGD方法可以产生泛化性良好的平坦曲面，而大批量的SGD方法则对应的是泛化性较差的最小值</p>
+<figure>
+<img src="img\image-20221103095128861.png"
+alt="image-20221103095128861" />
+<figcaption aria-hidden="true">image-20221103095128861</figcaption>
+</figure>
+<p>作者先通过实现证明1D可视化的局限性，在图（a）和（d）中横坐标0和1处分别指小batch_size模型参数<span
+class="math inline">\(\theta^s\)</span>和大batch_size模型参数<span
+class="math inline">\(\theta^l\)</span></p>
+<p>在（a）中小批量模型参数附近相当宽广，而大批量部分则相对尖锐，但是该情况可以通过使用weight
+decay来实现翻转，在（d）中作者使用了weight
+decay，其中小批量部分的泛化性（测试集错误率）最强，但是其图像却是尖锐的，在图（c）和（f）则是对其参数的直方图进行了绘制，在（b）和（e）中则绘制了模型在训练过程中的L2范数的变化。小批量的模型在weight
+decay的情况下发生了更大的波动，这是由于小批量模型更新次数更多，受到weight
+decay的影响也更多</p>
+<p>作者使用Filter Normalized对上述实验进行重复得到了下图</p>
+<figure>
+<img src="img\image-20221103102856130.png"
+alt="image-20221103102856130" />
+<figcaption aria-hidden="true">image-20221103102856130</figcaption>
+</figure>
+<p>经过归一化以后的模型避免了上述的问题，小批量的模型确实拥有更大的平坦度</p>
+<p>随后作者又对初始化，残差链接，模型宽度进行了可视化</p>
+<figure>
+<img src="img\image-20221103111904201.png"
+alt="image-20221103111904201" />
+<figcaption aria-hidden="true">image-20221103111904201</figcaption>
+</figure>
+<p>上图主要是不同网络层深度和有无残差连接的结果，可以看到加入残差连接后的模型哪怕到110层其Loss
+Landscape依旧平坦，但是不加的部分则充满了非凸性</p>
+<p>下图作者展示了宽网络带来的影响，其表明了加宽网络宽度也可以增加平坦度</p>
+<figure>
+<img src="img\image-20221103111925917.png"
+alt="image-20221103111925917" />
+<figcaption aria-hidden="true">image-20221103111925917</figcaption>
+</figure>
+<p>同时作者还指出了降维可视化损失函数和真实高维之间的联系，在降维图中如果存在非凸性，则全维图中必然也存在非凸性，但是低维的凸性不意味着高维函数的真正凸性，其只意味这正曲率占据主导地位</p>
+<h2 id="supplementary">Supplementary</h2>
+<p>作者在附录中给出了更多的实验</p>
+<p>先是weight decay对训练过程中权重范数变化的影响</p>
+<figure>
+<img src="img\image-20221103144523679.png"
+alt="image-20221103144523679" />
+<figcaption aria-hidden="true">image-20221103144523679</figcaption>
+</figure>
+<p>接着对比了给定随机法向方向<span
+class="math inline">\(d\)</span>的归一化方法，让<span
+class="math inline">\(\theta_i\)</span>表示第<span
+class="math inline">\(i\)</span>层的权重，<span
+class="math inline">\(\theta_{i,j}\)</span>表示第<span
+class="math inline">\(i\)</span>层的第<span
+class="math inline">\(j\)</span>个filter</p>
+<p>作者对比了三种方法，分别为：</p>
+<p>无归一化</p>
+<p>Filter 归一化 <span class="math display">\[
+d_{i,j}\gets \frac{d_{i,j}}{||d_{i,j}||}||\theta_{i,j}||
+\]</span> Layer归一化 <span class="math display">\[
+d_{i,j}\gets \frac{d_{i}}{||d_{i}||}||\theta_{i}||
+\]</span>
+下图展示的是无归一化，其中（a，e）和（c，g）展示了其锐利度和泛化性无关的错误结论，证明该方法不能很好展示模型的平坦度</p>
+<figure>
+<img src="img\image-20221103150249947.png"
+alt="image-20221103150249947" />
+<figcaption aria-hidden="true">image-20221103150249947</figcaption>
+</figure>
+<p>下图展示了Layer 归一化，其中（c，g）图片对也出现了错误</p>
+<figure>
+<img src="img\image-20221103150319529.png"
+alt="image-20221103150319529" />
+<figcaption aria-hidden="true">image-20221103150319529</figcaption>
+</figure>
+<p>最后作者给出了如何可视化训练过程路径</p>
+<p>在可视化训练轨迹的时候，随机方向方法不可用，其会导致训练路径出现较大错误，如下所示</p>
+<figure>
+<img src="img\image-20221103151150784.png"
+alt="image-20221103151150784" />
+<figcaption aria-hidden="true">image-20221103151150784</figcaption>
+</figure>
+<p>作者认为这是由于高维空间中任意两个随机向量几乎都是正交的，而当优化路径位于低维空间时，随机选择的向量将会与包含优化路径的低秩空间正交，从而导致其在随机方向上的投影不会有大的变化</p>
+<p>为此作者提出了使用PCA的方法来选择方向向量，作者用<span
+class="math inline">\(\theta_i\)</span>来表示第<span
+class="math inline">\(i\)</span>轮的参数，并构建出矩阵<span
+class="math inline">\(M=[\theta_0-\theta_n;\dots;\theta_{n-1}-\theta_n]\)</span>，对该矩阵使用PCA算法，并选择前两个作为方向向量，其绘制出的优化路径如下所示</p>
+<figure>
+<img src="img\image-20221103152828904.png"
+alt="image-20221103152828904" />
+<figcaption aria-hidden="true">image-20221103152828904</figcaption>
+</figure>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Loss Landscape</tag>
+        <tag>可视化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Huggingface Transformers 教程</title>
+    <url>/2022/09/10/Transformers%E6%95%99%E7%A8%8B/</url>
+    <content><![CDATA[<p>本教程基于 Huggingface 的 Transformers
+(4.10.0)，其中大部分来自于官方文档 <span id="more"></span> ## 1.pipeline</p>
+<p>首先是最简单的使用方法 <strong>pipeline</strong>
+其可以直接利用制定的任务</p>
+<p>在 <strong>pipeline</strong>
+中指定了以下几种任务：情绪分析，文本生成，命名实体识别，回答问题，Mask预测，总结文本，翻译，文本特征向量提取</p>
+<p>其使用也很简单</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">classifier = pipeline(<span class="string">&#x27;sentiment-analysis&#x27;</span>)</span><br><span class="line">classifier(<span class="string">&#x27;We are very happy&#x27;</span>)</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;POSITIVE&#x27;, &#x27;score&#x27;: 0.9998835325241089&#125;</span></span><br></pre></td></tr></table></figure>
+<p>在这里由于模型没有指定使用什么预训练模型，因此默认调用 “
+distilbert-base-uncased-finetuned-sst-2-english”
+，可以注意到这是一个基于 <strong>DistilBERT</strong> 的架构，并在
+<strong>sst-2</strong>
+上针对情感预测进行了微调，当然你也可以指定想要使用的模型，可以在 <a
+href="https://huggingface.co/models">model hub</a>
+中寻找你想要使用的模型。这里使用一下中文模型
+“uer/roberta-base-finetuned-chinanews-chinese”，需要注意的是，这个模型是这是文本分类的任务，但也可以使用
+<strong>'sentiment-analysis'</strong> 的 <strong>pipeline</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> pipeline</span><br><span class="line">clasifier = pipeline(<span class="string">&quot;sentiment-analysis&quot;</span>, model=<span class="string">&quot;uer/roberta-base-finetuned-chinanews-chinese&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(clasifier(<span class="string">&quot;中国国足今天将和越南比赛&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;label&#x27;: &#x27;sports&#x27;, &#x27;score&#x27;: 0.999755322933197&#125;</span></span><br></pre></td></tr></table></figure>
+<p>除了网上的模型，我们还可以调用本地的模型，这里我们需要两个类
+<strong>AutoTokenizer，AutoModelForMaskedLM</strong>，这里笔者由于使用了自己训练的本地模型，因此使用的是
+<strong>BertTokenizer</strong> 和
+<strong>AutoModelForMaskedLM</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">model = AutoModelForMaskedLM.from_pretrained(<span class="string">&quot;Huggingface/output/checkpoint-884000/&quot;</span>)</span><br><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&quot;/Huggingface/vocab.txt&quot;</span>)</span><br><span class="line">unmask = pipeline(<span class="string">&quot;fill-mask&quot;</span>, model=model, tokenizer=tokenizer)</span><br><span class="line"><span class="built_in">print</span>(unmask(<span class="string">&quot;实验室规[MASK]管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 范 管 理 制 度&#x27;, &#x27;score&#x27;: 0.46887779235839844, &#x27;token&#x27;: 6457, &#x27;token_str&#x27;: &#x27;范&#x27;&#125;, &#123;&#x27;sequence&#x27;: &#x27;实 验 室 规 章 管 理 制 度&#x27;, &#x27;score&#x27;: 0.39199674129486084, &#x27;token&#x27;: 5512, &#x27;token_str&#x27;: &#x27;章&#x27;&#125;</span></span><br></pre></td></tr></table></figure>
+<p>至于其它的 <strong>pipeline</strong> 的使用可以参考<a
+href="%5BSummary%20of%20the%20tasks%20—%20transformers%204.12.2%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/task_summary.html#sequence-classification)">官方文档</a></p>
+<h2 id="tokenizer">2.tokenizer</h2>
+<p><strong>tokenizer</strong> 是 <strong>transformers</strong>
+的核心组件之一，负责将句子数字化和分词</p>
+<p>对于使用 <a href="https://huggingface.co/models">model hub</a>
+中的预训练模型来说，其必须要使用对应的 <strong>tokenizer</strong>
+，可以通过 <strong>AutoTokenizer.from_pretrained()</strong> 获得</p>
+<p>这里我们下载一下中文 <strong>BERT-BASE</strong> 的
+tokenizer，一般会得到四个文件</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br><span class="line">tokenizer.save_pretrained(<span class="string">&quot;./save&quot;</span>)</span><br></pre></td></tr></table></figure>
+<figure>
+<img src="img\image-20211116144002979.png"
+alt="image-20211116144002979" />
+<figcaption aria-hidden="true">image-20211116144002979</figcaption>
+</figure>
+<p>其中 special_token_map.json指定了特殊token的形式，如
+<strong>[CLS]，[UNK]，[MASK]</strong> 等</p>
+<p>tokener.json和vocab.txt，则分别是词对应的数字和的词表，其中json文件还多了一部分信息用于描述
+<strong>tokenzier</strong> 中的特殊token</p>
+<p>tokenizer_config.json 则同样描述了特殊token和下载的tokenizer信息</p>
+<p>在得到 <strong>tokenizer</strong>
+后就可以对文本进行预处理，这里以中文为例</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer(<span class="string">&quot;实验室规章管理制度&quot;</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [101, 2141, 7741, 2147, 6226, 4995, 5052, 4415, 1169, 2428, 102], &#x27;token_type_ids&#x27;: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], &#x27;attention_mask&#x27;: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]&#125;</span></span><br></pre></td></tr></table></figure>
+<p>经过 <strong>tokenizer</strong>
+编码后会输出三项，<strong>input_ids</strong>
+是句子向量化以后的数字，<strong>token_type_ids</strong>
+是描述句子上下关系的，如果两个句子有上下文关联则会使用0和1加以区分，<strong>attention_mask</strong>
+则是描述句子的 <strong>padding</strong> 结构以指示哪些部分是
+<strong>padding</strong> 的</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForMaskedLM, pipeline</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;hfl/chinese-bert-wwm-ext&quot;</span>)</span><br><span class="line">sentence_1 = [<span class="string">&quot;我喜欢吃香菜&quot;</span>, <span class="string">&quot;去实验室吗&quot;</span>]</span><br><span class="line">sentence_2 = [<span class="string">&quot;我也喜欢吃&quot;</span>, <span class="string">&quot;去&quot;</span>]</span><br><span class="line"><span class="built_in">print</span>(tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>))</span><br><span class="line"><span class="comment"># &#123;&#x27;input_ids&#x27;: [[101, 2769, 1599, 3614, 1391, 7676, 5831, 102, 2769, 738, 1599, 3614, 1391, 102], [101, 1343, 2141, 7741, 2147, 1408, 102, 1343, 102, 0, 0, 0, 0, 0]], </span></span><br><span class="line"><span class="comment">#&#x27;token_type_ids&#x27;: [[0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]], #&#x27;attention_mask&#x27;: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]]&#125;</span></span><br></pre></td></tr></table></figure>
+<p>当然既然可以使用 <strong>tokenizer</strong>
+对句子进行编码处理，那也可以使用 <strong>tokenizer</strong>
+对已经编码的句子进行还原</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">encoded_inputs = tokenizer(sentence_1, sentence_2, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line"><span class="built_in">print</span>(tokenizer.decode(encoded_inputs[<span class="string">&quot;input_ids&quot;</span>][<span class="number">1</span>]))</span><br><span class="line"><span class="comment"># [CLS] 去 实 验 室 吗 [SEP] 去 [SEP] [PAD] [PAD] [PAD] [PAD] [PAD]</span></span><br></pre></td></tr></table></figure>
+<p>当然我们也可以自己训练一个自己的
+<strong>tokenizer</strong>，这里就要用到 <strong><a
+href="%5BTokenizers%20—%20tokenizers%20documentation%20(huggingface.co)%5D(https://huggingface.co/docs/tokenizers/python/latest/)">Tokenizers</a></strong>
+库了，这里以训练 <strong>BPE</strong> 编码的tokenizer为例</p>
+<p>在 <strong>Tokenizers</strong> 中提供了四种算法，包括
+<strong>BPE，Unigram，WordLevel，WordPiece</strong> 这里仅以
+<strong>BPE</strong> 为例</p>
+<p>首先需要准备好训练的语料库，每个句子一行</p>
+<figure>
+<img src="img\image-20211117141652919.png"
+alt="image-20211117141652919" />
+<figcaption aria-hidden="true">image-20211117141652919</figcaption>
+</figure>
+<p>随后指定训练方法，预分词方法，预计词表大小，预先定义的特殊
+<strong>token</strong>，之后就可以开始训练模型并存储下来</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = Tokenizer(BPE())</span><br><span class="line">tokenizer.pre_tokenizer = Whitespace()</span><br><span class="line">trainer = BpeTrainer(special_tokens=[<span class="string">&quot;[UNK]&quot;</span>, <span class="string">&quot;[CLS]&quot;</span>, <span class="string">&quot;[SEP]&quot;</span>, <span class="string">&quot;[PAD]&quot;</span>, <span class="string">&quot;[MASK]&quot;</span>], vocab_size=<span class="number">9000</span>)</span><br><span class="line">tokenizer.train(files=[<span class="string">&quot;News2016/valid.txt&quot;</span>], trainer=trainer)</span><br><span class="line">tokenizer.save(<span class="string">&#x27;tokenizer.json&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>最后就可以得到 <strong>tokenizer</strong> 文件</p>
+<p>加载的时候需要注意的是，在 <strong>tokenizers</strong> 中的
+<strong>tokenizer</strong> 和 <strong>Transformers</strong> 中的
+<strong>tokenizer</strong> 不一样</p>
+<p>在tokenizers中加载只需要之前保存的 <strong>tokenizer.json</strong>
+但在 <strong>Transformers</strong> 中需要使用
+<strong>PreTrainedTokenizerFast</strong>
+来加载，且两者在后续的使用中虽然功能都一样但无法混用，即由
+<strong>Tokenizer</strong> 初始化的 <strong>tokenizer</strong>
+无法应用到 <strong>Transformers</strong> 中</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># tokenizers</span></span><br><span class="line">tokenizer = Tokenizer.from_file(<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br><span class="line"><span class="comment"># Transformers</span></span><br><span class="line">tokenizer = PreTrainedTokenizerFast(tokenizer_file=<span class="string">&quot;Huggingface/tokenizer.json&quot;</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="models">3.Models</h2>
+<p><strong>Transformers</strong>
+支持众多预训练模型，这里主要可以分为：</p>
+<ol type="1">
+<li>解码器或自回归模型（GPT）</li>
+<li>编码器或自编码模型（BERT）</li>
+<li>序列到序列模型（T5）</li>
+<li>多模态模型</li>
+<li>基于检索的模型</li>
+</ol>
+<p>具体支持的模型可以在<a
+href="%5BPretrained%20models%20—%20transformers%204.12.4%20documentation%20(huggingface.co)%5D(https://huggingface.co/transformers/pretrained_models.html)">官方文档</a>下查看</p>
+<p>具体使用的时候可以如同第一节所述直接加载训练好的模型，也可以自己重新训练一个模型，这里主要讲述如何训练一个模型</p>
+<p>首先需要准备的是语料库，和 <strong>tokenizer</strong>，注意这里的
+<strong>tokenizer</strong> 不可以是之前第二节中说的从
+<strong>tokenizers</strong> 中初始化的模型，必须从
+<strong>Transformers</strong> 中初始化</p>
+<p>接下来就是对所选模型的 <strong>config</strong> 进行改写，这里以
+<strong>BERT</strong> 为例，训练一个掩码模型MLM</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertModel, BertConfig</span><br><span class="line"><span class="comment"># 对config进行自定义修改，这里仅修改了词表大小</span></span><br><span class="line">configuration = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line"><span class="comment"># 初始化BERT模型</span></span><br><span class="line">model = BertForMaskedLM(configuration)</span><br></pre></td></tr></table></figure>
+<p>在准备训练数据集部分还需要用到另一个 <strong>huggingface</strong>
+的库 <strong>datasets</strong> 同样在 <a
+href="%5BHugging%20Face%20–%20The%20AI%20community%20building%20the%20future.%5D(https://huggingface.co/datasets)">datasets
+hub</a> 上有许多开源的库，可以直接调用</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;glue&#x27;</span>, <span class="string">&#x27;mrpc&#x27;</span>, split=<span class="string">&#x27;train&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>但其中的纯中文语料库并不多，可能还是需要读者自行准备相应的训练语料库</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset, Dataset</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+<p>接下来需要对dataset使用 <strong>tokenizer</strong> 进行处理</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="comment"># 去除空行</span></span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        <span class="comment"># 上面初始化的时候将数据集中起名为 text</span></span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br></pre></td></tr></table></figure>
+<p>之后就是设置 <strong>trainer</strong> 的相关参数</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>最后给出训练的完整代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">tokenizer = BertTokenizer(vocab_file=<span class="string">&#x27;vocab.txt&#x27;</span>)</span><br><span class="line">dataset = load_dataset(<span class="string">&#x27;text&#x27;</span>, data_files=&#123;<span class="string">&#x27;train&#x27;</span>: <span class="string">&#x27;News2016/train.txt&#x27;</span>,</span><br><span class="line">                                           <span class="string">&#x27;validation&#x27;</span>: <span class="string">&#x27;News2016/valid.txt&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    examples[<span class="string">&quot;text&quot;</span>] = [line <span class="keyword">for</span> line <span class="keyword">in</span> examples[<span class="string">&quot;text&quot;</span>] <span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> <span class="keyword">and</span> <span class="keyword">not</span> line.isspace()]</span><br><span class="line">    <span class="keyword">return</span> tokenizer(</span><br><span class="line">        examples[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">        padding=<span class="string">&quot;max_length&quot;</span>,  <span class="comment"># 进行填充</span></span><br><span class="line">        truncation=<span class="literal">True</span>,  <span class="comment"># 进行截断</span></span><br><span class="line">        max_length=<span class="number">100</span>,  <span class="comment"># 设置句子的长度</span></span><br><span class="line">        return_special_tokens_mask=<span class="literal">True</span>,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">tokenized_datasets = dataset.<span class="built_in">map</span>(</span><br><span class="line">    tokenize_function,</span><br><span class="line">    batched=<span class="literal">True</span>,</span><br><span class="line">    num_proc=<span class="number">24</span>,</span><br><span class="line">    remove_columns=[<span class="string">&#x27;text&#x27;</span>],</span><br><span class="line">)</span><br><span class="line"><span class="comment"># 得到训练集和验证集</span></span><br><span class="line">train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>]</span><br><span class="line">eval_dataset = tokenized_datasets[<span class="string">&quot;validation&quot;</span>]</span><br><span class="line"></span><br><span class="line">config = BertConfig(vocab_size=<span class="number">9468</span>)</span><br><span class="line">model = BertForMaskedLM(config)</span><br><span class="line"></span><br><span class="line">datacollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=<span class="literal">True</span>, mlm_probability=<span class="number">0.15</span>)</span><br><span class="line">train_args = TrainingArguments(output_dir=<span class="string">&#x27;Huggingface/output/&#x27;</span>, overwrite_output_dir=<span class="literal">True</span>,</span><br><span class="line">                               num_train_epochs=<span class="number">10</span>, save_steps=<span class="number">2000</span>,</span><br><span class="line">                               learning_rate=<span class="number">5e-5</span>, per_device_train_batch_size=<span class="number">300</span>, save_total_limit=<span class="number">3</span>)</span><br><span class="line">trainer = Trainer(model=model, args=train_args, data_collator=datacollator, train_dataset=train_dataset)</span><br><span class="line">trainer.train(resume_from_checkpoint=<span class="literal">None</span>)</span><br><span class="line">trainer.save_model(<span class="string">&#x27;Huggingface/output/&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="fine-tuning">4.Fine-tuning</h2>
+<p>有了预训练模型后肯定还需要在具体任务上进行微调，这里以在IMDB上评价为正面还是负面为例（其实就是官方文档的例子）</p>
+<p>这里主要介绍如何在pytorch上进行微调，其核心还是利用
+<strong>Transformers</strong>
+中已经构建好的微调任务模型或者自己重写如何利用预训练模型</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AdamW</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoModelForSequenceClassification</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> get_scheduler</span><br><span class="line"><span class="keyword">from</span> tqdm.auto <span class="keyword">import</span> tqdm</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取数据集</span></span><br><span class="line">raw_datasets = load_dataset(<span class="string">&quot;imdb&quot;</span>)</span><br><span class="line"><span class="comment"># 获取tokenizer</span></span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将tokenizer自动应用到数据集上</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tokenize_function</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="keyword">return</span> tokenizer(examples[<span class="string">&quot;text&quot;</span>], padding=<span class="string">&quot;max_length&quot;</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">tokenized_datasets = raw_datasets.<span class="built_in">map</span>(tokenize_function, batched=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 去除数据集中没用的标签，并将输出设为torch的tensor格式</span></span><br><span class="line">tokenized_datasets = tokenized_datasets.remove_columns([<span class="string">&quot;text&quot;</span>])</span><br><span class="line">tokenized_datasets = tokenized_datasets.rename_column(<span class="string">&quot;label&quot;</span>, <span class="string">&quot;labels&quot;</span>)</span><br><span class="line">tokenized_datasets.set_format(<span class="string">&quot;torch&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 取一部分数据集做演示</span></span><br><span class="line">small_train_dataset = tokenized_datasets[<span class="string">&quot;train&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line">small_eval_dataset = tokenized_datasets[<span class="string">&quot;test&quot;</span>].shuffle(seed=<span class="number">42</span>).select(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建dataloader</span></span><br><span class="line">train_dataloader = DataLoader(small_train_dataset, shuffle=<span class="literal">True</span>, batch_size=<span class="number">8</span>)</span><br><span class="line">eval_dataloader = DataLoader(small_eval_dataset, batch_size=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 构建优化器</span></span><br><span class="line">optimizer = AdamW(model.parameters(), lr=<span class="number">5e-5</span>)</span><br><span class="line"><span class="comment"># 直接使用Transformer中有的模型</span></span><br><span class="line">model = AutoModelForSequenceClassification.from_pretrained(<span class="string">&quot;bert-base-cased&quot;</span>, num_labels=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置变量和定义学习率变化方法</span></span><br><span class="line">num_epochs = <span class="number">3</span></span><br><span class="line">num_training_steps = num_epochs * <span class="built_in">len</span>(train_dataloader)</span><br><span class="line">lr_scheduler = get_scheduler(</span><br><span class="line">    <span class="string">&quot;linear&quot;</span>,</span><br><span class="line">    optimizer=optimizer,</span><br><span class="line">    num_warmup_steps=<span class="number">0</span>,</span><br><span class="line">    num_training_steps=num_training_steps</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">device = torch.device(<span class="string">&quot;cuda&quot;</span>) <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> torch.device(<span class="string">&quot;cpu&quot;</span>)</span><br><span class="line">model.to(device)</span><br><span class="line"></span><br><span class="line">progress_bar = tqdm(<span class="built_in">range</span>(num_training_steps))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始训练</span></span><br><span class="line">model.train()</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch <span class="keyword">in</span> train_dataloader:</span><br><span class="line">        batch = &#123;k: v.to(device) <span class="keyword">for</span> k, v <span class="keyword">in</span> batch.items()&#125;</span><br><span class="line">        outputs = model(**batch)</span><br><span class="line">        loss = outputs.loss</span><br><span class="line">        loss.backward()</span><br><span class="line"></span><br><span class="line">        optimizer.step()</span><br><span class="line">        lr_scheduler.step()</span><br><span class="line">        optimizer.zero_grad()</span><br><span class="line">        progress_bar.update(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>Huggingface Transformers</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Warm-up在Transformer中的作用</title>
+    <url>/2022/09/10/Warm-up%E5%9C%A8Transformer%E4%B8%AD%E7%9A%84%E4%BD%9C%E7%94%A8/</url>
+    <content><![CDATA[<p>介绍Warm-up在Transformer中的作用</p>
+<span id="more"></span>
+<p>ICLR 2020</p>
+<p>文章开头指出了Warm-up在Transformer结构中有十分重要的地位，Transformer的最终性能对设定的最大学习率和迭代次数的值都会非常敏感</p>
+<p>作者发现其敏感性与Layer-Norm层的位置有密切联系，当Layer-Norm层在残差块中间时，靠近输出层部分的参数的梯度的期望将会很大。因此在没有Warm-up阶段时，直接对这些参数应用较大的学习率会导致模型优化不稳定</p>
+<p>因此作者提出了Transformer的一种变体结构即Pre-LN，其如图（b）所示
+，在Pre-LN模型中Layer-Norm层被放到了模型的残差连接里面，在这种结构下可以不使用Warm-up方法</p>
+<figure>
+<img src="img/image-20210928160317548.png"
+alt="image-20210928160317548" />
+<figcaption aria-hidden="true">image-20210928160317548</figcaption>
+</figure>
+<p>首先作者对不同优化器（Adam，SGD）进行了测试，在测试中可以看出，不使用Warm-up会导致最后性能较差，且Warm-up的步长<span
+class="math inline">\(T_{warmup}\)</span>也是很重要的超参数，同样会影响最后的性能</p>
+<figure>
+<img src="img/image-20210928193823009.png"
+alt="image-20210928193823009" />
+<figcaption aria-hidden="true">image-20210928193823009</figcaption>
+</figure>
+<p>在对比实验中同样可以发现，Warm-up不仅仅对Adam有效，也对SGD优化器有效</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>Transformer</tag>
+        <tag>Warm-up</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>在 M1 系列上使用GPU训练Pytorch</title>
+    <url>/2022/09/10/%E5%9C%A8%20M1%20%E7%B3%BB%E5%88%97%E4%B8%8A%E4%BD%BF%E7%94%A8GPU%E8%AE%AD%E7%BB%83Pytorch/</url>
+    <content><![CDATA[<p>最近 Pytorch 支持了 M1系列芯片的 GPU <span id="more"></span> 接下来将演示如何在
+MAC OS 上如何使用</p>
+<p>Step1</p>
+<p>安装 arm 版的 anconda，切记一定是 arm 版的</p>
+<p><img src="img/截屏2022-05-20%2001.47.56.png" /></p>
+<p>可以通过以下命令查看自己安装的版本是否正确</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> platform</span><br><span class="line"><span class="built_in">print</span>(platform.platform())</span><br></pre></td></tr></table></figure>
+<p>如果是 arm 版的会输出 macOS-12.3.1-arm64-arm-64bit，如果输出带有 X86
+则说明版本不对需要重新安装</p>
+<p>Step2</p>
+<p>安装最新预览版Pytorch</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">conda <span class="keyword">install</span> pytorch torchvision torchaudio -c pytorch-nightly</span><br></pre></td></tr></table></figure>
+<p>使用 conda 有一定概率无法安装到预览版，在安装的时候可以检查 Pytorch
+版本是否为 1.12.0.dev20220519</p>
+<p>如果使用 conda 无法安装到预览版，可以使用 pip3 安装</p>
+<figure class="highlight awk"><table><tr><td class="code"><pre><span class="line">pip3 install --pre torch torchvision torchaudio --extra-index-url https:<span class="regexp">//</span>download.pytorch.org<span class="regexp">/whl/</span>nightly/cpu</span><br></pre></td></tr></table></figure>
+<p>Step3</p>
+<p>到这一步就已经完成了环境的安装，可以测试是否支持 M1系列 GPU</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line">a = torch.rand(<span class="number">5</span>).to(<span class="string">&quot;mps&quot;</span>)</span><br><span class="line"><span class="comment"># tensor([1.2810e-02, 4.8380e-01, 4.0773e-01, 2.5867e-01, 6.4366e-01], device=&#x27;mps:0&#x27;)</span></span><br></pre></td></tr></table></figure>
+<p>如果没有报错就说明 OK 了</p>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>Pytorch</tag>
+        <tag>M1</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>深度学习模型移植嵌入式设备教程</title>
+    <url>/2023/01/09/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E6%95%99%E7%A8%8B/</url>
+    <content><![CDATA[<p>简单介绍了深度学习模型移植嵌入式设备的方法 <span id="more"></span></p>
+<p>这里以ASR模型和RK3588S为例，使用的推理框架是ONNXRuntime，其中交叉编译是在Ubutu22.04上完成的</p>
+<p>目前主流的推理框架包括NCNN，MNN，TNN，ONNXRuntime</p>
+<p>其中NCNN，TNN，MNN三者均针对嵌入式进行了优化，其在推理速度上有一定的优势，但是其支持的算子没有ONNXRuntime那么全面，因此可能转换时出现错误，此时就需要修改模型或者自行针对缺少的算子进行实现，因此这里选择ONNXRuntime</p>
+<p>如果你的模型是很标准的CNN结构如Resnet，VGG等或者在其上修改并不多，那么选择NCNN/TNN/MNN即可</p>
+<h2 id="步骤">步骤</h2>
+<h4 id="step1">Step1:</h4>
+<p>准备训练好的模型，利用Pytorch自带的onnx转换工具将其转为onnx</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> onnx</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">input_sample = torch.randn((<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">1000</span>))	<span class="comment"># 模型输入</span></span><br><span class="line">model.to_onnx(<span class="string">&quot;model.onnx&quot;</span>, 									<span class="comment"># 保存名称</span></span><br><span class="line">              input_sample,										<span class="comment"># 输入</span></span><br><span class="line">              export_params=<span class="literal">True</span>,							<span class="comment"># 常量折叠</span></span><br><span class="line">              opset_version=<span class="number">13</span>,								<span class="comment"># 算子版本</span></span><br><span class="line">              input_names=[<span class="string">&quot;input&quot;</span>],					<span class="comment"># 输入名称</span></span><br><span class="line">              output_names=[<span class="string">&quot;output&quot;</span>],				<span class="comment"># 输出名称</span></span><br><span class="line">              dynamic_axes=&#123;									<span class="comment"># 如果输入的长度不确定，则需要在这里指定</span></span><br><span class="line">              	<span class="string">&quot;input&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, <span class="number">3</span>: <span class="string">&quot;seq_len&quot;</span>&#125;,</span><br><span class="line">               	<span class="string">&quot;output&quot;</span>: &#123;<span class="number">0</span>: <span class="string">&#x27;batch_size&#x27;</span>, &#125;,</span><br><span class="line">              &#125;)</span><br><span class="line"><span class="comment"># 转换完以后可以使用下列语句对ONNX模型进行检查</span></span><br><span class="line">model = onnx.load(<span class="string">&quot;model.onnx&quot;</span>)</span><br><span class="line">onnx.checker.check_model(model)</span><br></pre></td></tr></table></figure>
+<p>如果你的模型不是很标准的结构，比如有许多自定义的结构，那么这一步有可能会报错，此时就需要去修改模型以确保能被转换为ONNX模型</p>
+<p>同时ONNX模型也是很多其他推理框架的中间模型，此时可以通过https://convertmodel.com进行转换</p>
+<h4 id="step2">Step2:</h4>
+<p>准备好对应的交叉编译工具，由于我们的目标是64位的，因此这里使用的是<a
+href="https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads">aarch64-none-linux-gnu</a></p>
+<p>下载交叉编译工具链解压后将其放到任意位置，随后编辑.bashrc文件</p>
+<p>在文件最后加上</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=<span class="string">&quot;your toolchain path:<span class="variable">$PATH</span>&quot;</span></span><br></pre></td></tr></table></figure>
+<p>随后新开一个端口，或者使用source .bashrc刷新配置</p>
+<p>之后检查交叉编译工具链是否正确</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">aarch64-none-linux-gnu-gcc -v</span><br></pre></td></tr></table></figure>
+<p>如果出现了对应的版本号则说明工具链安装正确</p>
+<h4 id="step3">Step3:</h4>
+<p>下载<a
+href="https://github.com/microsoft/onnxruntime/releases">ONNXRuntime</a>，这里下载对应的版本就行（此时为了方便调试，可以同时下载x64和aarch64两种）</p>
+<p>下载后就得到了ONNXRuntime的动态库，同时如果官方给出的里面没有你所需要的版本，则需要下载源码自行编译</p>
+<p>将下载好的文件解压，并放置到工程目录下方便后续使用</p>
+<h4 id="step4">Step4:</h4>
+<p>编写C++程序以实现对ONNX模型的调用，这里给出C++程序的基本框架，该框架只对ONNX模型进行了测试，以便确定能跑通</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;	<span class="comment">// 创建环境</span></span><br><span class="line">    Ort::SessionOptions session_options;					<span class="comment">// 创建配置</span></span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);			<span class="comment">// 设置线程数</span></span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED); <span class="comment">// 设置图优化等级，这里是EXTENDED等级</span></span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;	<span class="comment">// 模型名称</span></span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;		<span class="comment">//创建session</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">   	std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;			<span class="comment">// 输入名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;		<span class="comment">// 输出名称，此处要和导出部分一致</span></span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, <span class="number">250</span>&#125;;		<span class="comment">// 输入数据形状</span></span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*<span class="number">250</span>;	<span class="comment">// 输入数据总大小</span></span><br><span class="line">    <span class="function">vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;		<span class="comment">// 构建输入数据，注意这里应该是一维vector</span></span><br><span class="line">		<span class="comment">// 给输入数据初始值  </span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>;i&lt;input_tensor_size;i++)&#123;</span><br><span class="line">        input_tensor_values[i] = (<span class="type">float</span>) i / (input_tensor_size + <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);	<span class="comment">// 配置存储</span></span><br><span class="line">  </span><br><span class="line">  	<span class="comment">// 创建tensor，注意模型的输入必须是tensor而不是vector</span></span><br><span class="line">  	<span class="comment">// 第一个参数是memory_info，第二个是输入数据指针，第三个是输入数据大小，第四个是输入数据形状指针，第五个是输入数据形状大小</span></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>()); <span class="comment">// 断言</span></span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);	<span class="comment">// 执行推理</span></span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;(); <span class="comment">// 转换输出，由于我的pytorch模型输出的就是long int格式，如果输出的是浮点，这里应该是float</span></span><br><span class="line">		</span><br><span class="line">  	<span class="comment">// 打印结果</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编写完C++后，由于我使用的是Clion作为IDE，因此还需要编写CMakeList.txt</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">include_directories</span>(your onnxruntime path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">link_directories</span>(your onnxruntime path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>之后就可以在本地编译，进行测试</p>
+<p>在本地测试通过后还需要进行交叉编译到目标平台</p>
+<p>此时的CMakeList.txt需要进行修改，这里为了方便进行测试所以设置了条件编译，此时</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.22</span>)</span><br><span class="line"><span class="keyword">project</span>(onnx_test)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CROSS_COMPILE <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(CROSS_COMPILE)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_SYSTEM_NAME Linux)</span><br><span class="line">    <span class="keyword">set</span> (CMAKE_SYSTEM_PROCESSOR aarch64)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">set</span>(CMAKE_C_COMPILER aarch64-none-linux-gnu-gcc)</span><br><span class="line">    <span class="keyword">set</span>(CMAKE_CXX_COMPILER aarch64-none-linux-gnu-g++)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_aarch64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_aarch64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">else</span>()</span><br><span class="line">    <span class="keyword">include_directories</span>(your onnxruntime_x64 path/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">link_directories</span>(your onnxruntime_x64 path/lib)</span><br><span class="line"></span><br><span class="line"><span class="keyword">endif</span>()</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(onnx_test main.cpp)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(onnx_test onnxruntime)</span><br></pre></td></tr></table></figure>
+<p>同时由于我在Clion中设置交叉编译失败了，因此需要手动编译，在工程目录下执行：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">cmake ..</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+<p>随后便可以得到编译后的程序onnx_test，将其传到目标板子上，同时还需要将onnxruntime_aarch64/lib下的文件，传输到目标开发版的/usr/lib目录下</p>
+<p>在目标板子上新建test文件夹，其下有可执行文件onnx_test和ONNX模型model.onnx</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x onnx_test	<span class="comment"># 赋予可执行权限</span></span><br><span class="line">./onnx_test					<span class="comment"># 执行</span></span><br></pre></td></tr></table></figure>
+<p>在看到输出结果后，就说明移植成功</p>
+<h4 id="step5">Step5:</h4>
+<p>在针对ONNX模型的移植测试通过后，需要进一步完善程序，才能实现ASR</p>
+<p>由于我们的ASR模型输入的数据是音频的Fbank特征，因此还需要移植Fbank特征提取程序，这里我移植了WeNet的程序</p>
+<p>同时由于python程序中对音频和Fbank特征进行了归一化和标准化，因此也需要对其进行实现</p>
+<p>不同的深度学习模型这一部分应该有很大的区别，这里给出最后的主程序以供参考</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Created by qyk on 23-1-8.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;wav.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;fbank.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;onnxruntime_cxx_api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    wav::WavReader reader;		<span class="comment">// 创建reader</span></span><br><span class="line"></span><br><span class="line">    wenet::FeatureConfig config = wenet::<span class="built_in">FeatureConfig</span>(<span class="number">80</span>, <span class="number">16000</span>);	<span class="comment">// 创建Fbank参数，80维mel，采样率16k</span></span><br><span class="line"></span><br><span class="line">    <span class="function">wenet::Fbank <span class="title">fbank_</span><span class="params">(config.num_bins, config.sample_rate, config.frame_length,</span></span></span><br><span class="line"><span class="params"><span class="function">                        config.frame_shift)</span></span>;	<span class="comment">//创建fabnk提取器</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    reader.<span class="built_in">Open</span>(<span class="string">&quot;1.wav&quot;</span>);</span><br><span class="line">    <span class="comment">//读取wav数据</span></span><br><span class="line">    <span class="type">const</span> <span class="type">float</span>* data=reader.<span class="built_in">data</span>();</span><br><span class="line">    <span class="type">int</span> number_samples = reader.<span class="built_in">num_samples</span>();</span><br><span class="line">    <span class="type">int</span> sample_rate = reader.<span class="built_in">sample_rate</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;wav time:&quot;</span> &lt;&lt; (<span class="type">float</span>)number_samples / sample_rate &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    <span class="comment">//wav归一化</span></span><br><span class="line">    reader.<span class="built_in">normalized</span>();</span><br><span class="line">		</span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; feats;	<span class="comment">// 创建Fbank特征vector</span></span><br><span class="line">    std::vector&lt;<span class="type">float</span>&gt; waves;								<span class="comment">// 创建音频vector</span></span><br><span class="line">    waves.<span class="built_in">insert</span>(waves.<span class="built_in">end</span>(), data, data + number_samples);	<span class="comment">// 将音频数据写入其中</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//计算Fbank, 返回Fbank特征帧数, feats[frame_number, fbank_dim]</span></span><br><span class="line">    <span class="type">int</span> frame_number = fbank_.<span class="built_in">Compute</span>(waves, &amp;feats);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 对feats进行转置，得到feats_T</span></span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">float</span>&gt;&gt; <span class="built_in">feats_T</span>(feats[<span class="number">0</span>].<span class="built_in">size</span>());</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;frame_number; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats[<span class="number">0</span>].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[j].<span class="built_in">push_back</span>(feats[i][j]);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//Fbank标准化</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;<span class="number">80</span>; ++i) &#123;</span><br><span class="line">        <span class="type">double</span> sum = std::<span class="built_in">accumulate</span>(std::<span class="built_in">begin</span>(feats_T[i]), std::<span class="built_in">end</span>(feats_T[i]), <span class="number">0.0</span>);</span><br><span class="line">        <span class="type">double</span> mean = sum / feats_T[i].<span class="built_in">size</span>();</span><br><span class="line">        <span class="type">double</span> std = <span class="number">0.0</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            std = std + <span class="built_in">pow</span>(feats_T[i][j]-mean,<span class="number">2</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        std = <span class="built_in">sqrt</span>(std/feats_T[i].<span class="built_in">size</span>()<span class="number">-1</span>);</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>; j&lt;feats_T[i].<span class="built_in">size</span>(); j++)&#123;</span><br><span class="line">            feats_T[i][j] = (feats_T[i][j] - mean)/(<span class="number">1e-10</span>+std);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Env <span class="title">env</span><span class="params">(ORT_LOGGING_LEVEL_WARNING, <span class="string">&quot;&quot;</span>)</span></span>;</span><br><span class="line">    Ort::SessionOptions session_options;</span><br><span class="line">    session_options.<span class="built_in">SetInterOpNumThreads</span>(<span class="number">1</span>);</span><br><span class="line">    session_options.<span class="built_in">SetGraphOptimizationLevel</span>(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);</span><br><span class="line">    <span class="type">char</span>* model_path=<span class="string">&quot;model.onnx&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">Ort::Session <span class="title">session</span><span class="params">(env, model_path, session_options)</span></span>;</span><br><span class="line"><span class="comment">//    Ort::AllocatorWithDefaultOptions allocator;</span></span><br><span class="line"></span><br><span class="line">    <span class="type">size_t</span> num_input_nodes = session.<span class="built_in">GetInputCount</span>();</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; input_node_name = &#123;<span class="string">&quot;input&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">const</span> <span class="type">char</span>*&gt; output_node_name = &#123;<span class="string">&quot;output&quot;</span>&#125;;</span><br><span class="line">    std::vector&lt;<span class="type">int64_t</span>&gt; input_node_dims = &#123;<span class="number">1</span>, <span class="number">1</span>, <span class="number">80</span>, frame_number&#125;;</span><br><span class="line">    <span class="type">size_t</span> input_tensor_size = <span class="number">80</span>*frame_number;</span><br><span class="line"></span><br><span class="line">    <span class="function">std::vector&lt;<span class="type">float</span>&gt; <span class="title">input_tensor_values</span><span class="params">(input_tensor_size)</span></span>;</span><br><span class="line">    <span class="type">size_t</span> count=<span class="number">0</span>;</span><br><span class="line">  	<span class="comment">// 创建输入vector，将feast_T转为一维向量，以便后面构建tensor</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">size_t</span> i = <span class="number">0</span>; i&lt;<span class="number">80</span>; i++)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">size_t</span> j = <span class="number">0</span>; j&lt;frame_number; j++)&#123;</span><br><span class="line">            input_tensor_values[count] = feats_T[i][j];</span><br><span class="line">            count++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">auto</span> memory_info = Ort::MemoryInfo::<span class="built_in">CreateCpu</span>(OrtArenaAllocator, OrtMemTypeDefault);</span><br><span class="line"></span><br><span class="line">    Ort::Value input_tensor = Ort::Value::<span class="built_in">CreateTensor</span>&lt;<span class="type">float</span>&gt;(memory_info, input_tensor_values.<span class="built_in">data</span>(), input_tensor_size, input_node_dims.<span class="built_in">data</span>(), <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert</span>(input_tensor.<span class="built_in">IsTensor</span>());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> output_tensors = session.<span class="built_in">Run</span>(Ort::RunOptions&#123;<span class="literal">nullptr</span>&#125;, input_node_name.<span class="built_in">data</span>(), &amp;input_tensor, <span class="number">1</span>, output_node_name.<span class="built_in">data</span>(), <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="type">int</span> *floatarr = output_tensors.<span class="built_in">front</span>().<span class="built_in">GetTensorMutableData</span>&lt;<span class="type">long</span> <span class="type">int</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">60</span>; i++) &#123;</span><br><span class="line">        std::cout &lt;&lt; floatarr[i] &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同时由于移植的Fbank提取是多个文件在一个文件夹中，因此也需要在该文件夹中新建CMakeList.txt，并填写以下内容</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">add_library</span>(utils STATIC wav.cpp fft.cpp fbank.cpp)</span><br></pre></td></tr></table></figure>
+<p>同时在项目主文件夹中的CMakeList.txt也需要加上</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line"><span class="keyword">include_directories</span>(./ ./utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_link_libraries</span>(main utils onnxruntime)</span><br></pre></td></tr></table></figure>
+<p>此后便可编译运行，而交叉编译部分第4步差不多</p>
+<p>至此移植深度学习模型至嵌入式上也就完成了</p>
+<h2 id="参考">参考</h2>
+<ol type="1">
+<li><a href="https://github.com/wenet-e2e/wenet">WeNet</a></li>
+<li><a href="https://onnxruntime.ai">ONNXRuntime</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>教程</category>
+      </categories>
+      <tags>
+        <tag>ONNXRuntime</tag>
+        <tag>嵌入式</tag>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>文本纠错文献</title>
+    <url>/2022/09/10/%E6%96%87%E6%9C%AC%E7%BA%A0%E9%94%99%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理文本纠错相关文献</p>
+<span id="more"></span>
+<p>文本主要包含有三种类型的错误：1.替换；2.插入或删除
+3.局部重排，如下图所示 <img src="img\image-20211018185455601.png"
+alt="image-20211103093224508" /></p>
+<p>目前的主流思路是利用经过预训练后的语言模型，结合具体的纠错模型实现对文本的纠错</p>
+<p>中文常见数据集：</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">数据集</th>
+<th style="text-align: center;">训练集</th>
+<th style="text-align: center;">验证集</th>
+<th style="text-align: center;">测试集</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">HybirdSet</td>
+<td style="text-align: center;">274039</td>
+<td style="text-align: center;">3162</td>
+<td style="text-align: center;">3162</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">SIGHAN15</td>
+<td style="text-align: center;">2339</td>
+<td style="text-align: center;">/</td>
+<td style="text-align: center;">1100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">SIGHAN13</td>
+<td style="text-align: center;">350</td>
+<td style="text-align: center;">/</td>
+<td style="text-align: center;">974</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">SIGHAN14</td>
+<td style="text-align: center;">6526</td>
+<td style="text-align: center;">/</td>
+<td style="text-align: center;">526</td>
+</tr>
+</tbody>
+</table>
+<p>英文数据集：</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">数据集</th>
+<th style="text-align: center;">训练集</th>
+<th style="text-align: center;">验证集</th>
+<th style="text-align: center;">测试集</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">CoNLL-2014</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">BEA-2019</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">GMEG</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p>在评测时经常使用的评测指标是<span
+class="math inline">\(F_{0.5}\)</span> 其是指准确率比召回率重要一倍</p>
+<h2
+id="confusionset-guided-pointer-networks-for-chinese-spelling-check">1.《Confusionset-guided
+Pointer Networks for Chinese Spelling Check》</h2>
+<p>Dingmin Wang, Yi Tay, Li Zhong ACL 2019</p>
+<p>作者提出了一种基于混淆数据集的指针网络来进行中文纠错</p>
+<p>在中文语句中错误的是少数的字词，因此作者认为可以将正确的直接复制过来，而错误的字词则是从混淆数据集中选择</p>
+<h3 id="具体做法">具体做法</h3>
+<p>文章采用Encoder-Decoder模型</p>
+<figure>
+<img src="img\image-20211018150532495.png"
+alt="image-20211018150532495" />
+<figcaption aria-hidden="true">image-20211018150532495</figcaption>
+</figure>
+<p>在编码器端，对于输入<span
+class="math inline">\(X=\{c_1^s,c_2^s,\dots,c_n^s\}\)</span>将其通过Bi-LSTM网络，得到编码后的结果<span
+class="math inline">\(h_i^s\)</span></p>
+<p>在解码器端，首先通过单向LSTM生成当前时间步隐藏编码<span
+class="math inline">\(h_j^t\)</span>，再利用<span
+class="math inline">\(h_j^t\)</span>和<span
+class="math inline">\(h_i^s\)</span>计算注意力得到<span
+class="math inline">\(h_j^{t&#39;}\)</span>，将得到的<span
+class="math inline">\(h_j^{t&#39;}\)</span>和<span
+class="math inline">\(h_j^t\)</span>经过简单的线性变换得到上下文向量<span
+class="math inline">\(C_j\)</span> <span class="math display">\[
+h_j^t=LSTM(h_{j-1}^t,e_{j-1}^t)
+\\ u_i=v^Ttanh(W_1h_j^t+W_2h_i^s)
+\\ \alpha_i=softmax(u_i)
+\\ h_j^{t&#39;}=\sum_{i=0}^n\alpha_i h_i^s
+\\ C_j=tanh(W(h_j^t;h_j^{t&#39;}))
+\]</span>
+在这以前作者用的都是普通的Encoder-Decoder模型，作者的创新点在于接下来的步骤</p>
+<p>作者根据得到的上下文向量<span
+class="math inline">\(C_j\)</span>计算了两个分布，一个是词汇表分布，一个是用于复制机制</p>
+<p>首先是词汇表分布：<span
+class="math inline">\(P_{vocab}=softmax(W_{vocab}C_j)\)</span></p>
+<p>接下来是基于输入的分布：<span
+class="math inline">\(L_j=softmax(W_i[W_gC_j;Loc_j])\)</span></p>
+<p>其中<span
+class="math inline">\(Loc_j\)</span>代表的是位置分布，在每个时间步只有第
+j 项为1，其它均为0</p>
+<p>作者是这样考虑的，在inference阶段首先根据基于输入的分布<span
+class="math inline">\(L_j\)</span>来判断当前词汇是否在输入的范围内，如果不在的话则调用混淆表和词汇分布表计算出应该的值
+<span class="math display">\[
+\widehat{c}_j^t=\begin{cases}
+argmax(L_j), \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ if \ \ \ \
+argmax(L_j)!=n+1
+\\argmax(P_{vocab}\odot M[j]), \ \ \ \ otherwise
+\end{cases}
+\]</span> 为了实现该效果，作者在训练期间定义了正确的基于输入的分布<span
+class="math inline">\(L_j^{loc}\)</span> <span class="math display">\[
+L_j^{loc}=\begin{cases}
+max(z), \ \ \ \ \ \ \ if\ \ \exists \ \ z \ \ \ \ s.t. \ c_j^t=X[z]
+\\ n+1, \ \ \ \ \ \ \ \ \ \ otherwise
+\end{cases}
+\]</span> 这里面的<span
+class="math inline">\(c_j^t\)</span>是指正确的输出序列，即判断标准输出在输入上正确的索引，对于输出不在输入范围内的情况（即错误的字词），用n+1表示</p>
+<p>最后loss被定义为:<span
+class="math inline">\(Loss_l=\sum_{i}^m-logL_j[L_j^{loc}]\)</span></p>
+<h3 id="结论">结论</h3>
+<p>作者在SIGHAN 2013,14,15三个数据集上做了测试</p>
+<figure>
+<img src="img\image-20211018164301439.png"
+alt="image-20211018164301439" />
+<figcaption aria-hidden="true">image-20211018164301439</figcaption>
+</figure>
+<p>相比其它模型都取得了不错的成绩</p>
+<p>但是作者指出该模型只能应对输入输出等长的情况，对于语法错误则无法修正</p>
+<h2
+id="tail-to-tail-non-autoregressive-sequence-prediction-for-chinese-grammatical-error-correction">2.《Tail-to-Tail
+Non-Autoregressive Sequence Prediction for Chinese Grammatical Error
+Correction》</h2>
+<p>Piji Li Shuming Shi 2021 ACL</p>
+<p>作者上来指出目前的语法纠错（Grammatical Error Correction
+GEC）模型都只能处理等长的输入输出序列，对于需要删除，增加的操作无法很好的支持</p>
+<p>作者总结了三种GEC更正类型：1.替换；2.插入或删除 3.局部重排</p>
+<figure>
+<img src="img\image-20211018185455601.png"
+alt="image-20211018185455601" />
+<figcaption aria-hidden="true">image-20211018185455601</figcaption>
+</figure>
+<p>作者给出了三个示意图来展示token信息在 bottom tail 和 up tail
+之间的流动 （这里的tail 可以被视为尾部）</p>
+<p>作者为了克服之前说到的问题，提出了 Tail-to-Tail
+的非自回归模型（TtT）并在计算loss时使用焦点损失补偿（Focal loss penalty
+strategy）来缓解类不平衡问题</p>
+<h3 id="具体实现">1.具体实现</h3>
+<figure>
+<img src="img\image-20211018200439803.png"
+alt="image-20211018200439803" />
+<figcaption aria-hidden="true">image-20211018200439803</figcaption>
+</figure>
+<p>输入为<span
+class="math inline">\(X=(x_1,x_2,\dots,x_T)\)</span>其中<span
+class="math inline">\(x_i\)</span>为字符，<span
+class="math inline">\(T\)</span>为序列长度，模型的目标是输出一个新的句子<span
+class="math inline">\(Y=(y_1,y_2,\dots,y_{T&#39;})\)</span>其中<span
+class="math inline">\(T&#39;\)</span>和<span
+class="math inline">\(T\)</span>不一定相等，在输入后接Transformer层，用于双向语义建模，在其后接CRF层计算token之间的依赖关系来进行非自回归序列生成</p>
+<h4 id="可变长输入">1.1 可变长输入</h4>
+<p>作者提出了<span class="math inline">\(T&#39;\)</span>和<span
+class="math inline">\(T\)</span>长度不一定一致，则此时存在三种情况，假设输入为<span
+class="math inline">\(X=(x_1,x_2,x_3,&lt;eos&gt;)\)</span></p>
+<h5 id="t-t">1.<span class="math inline">\(T&#39; = T\)</span></h5>
+<p>此时无需任何额外处理</p>
+<h5 id="t-t-1">2. <span class="math inline">\(T&#39; &lt;
+T\)</span></h5>
+<p>此时输出假设为<span
+class="math inline">\(Y=(y_1,y_2,&lt;eos&gt;)\)</span>则需要在其后补$<pad>
+<span class="math inline">\(标签直到\)</span>T' = T$ 即输出变为<span
+class="math inline">\(Y=(y_1,y_2,&lt;eos&gt;,&lt;pad&gt;)\)</span></p>
+<h5 id="t-t-2">3. <span class="math inline">\(T&#39; &gt;
+T\)</span></h5>
+<p>此时输出假设为<span
+class="math inline">\(Y=(y_1,y_2,y_3,y_4,y_5,&lt;eos&gt;)\)</span>，则需要在输入后补<span
+class="math inline">\(&lt;mask&gt;\)</span>标签直到<span
+class="math inline">\(T&#39; = T\)</span> 即输入变为<span
+class="math inline">\(X=(x_1,x_2,x_3,&lt;eos&gt;,&lt;mask&gt;,&lt;mask&gt;)\)</span></p>
+<p>通过如此操作即实现了输入和输出尾对齐</p>
+<h4 id="双向语义建模">1.2 双向语义建模</h4>
+<p>这一部分使用的是Transformer层，同时利用了预训练模型</p>
+<h4 id="非自回归序列预测">1.3 非自回归序列预测</h4>
+<p>这里面包含两部分，一部分是直接预测即<span
+class="math inline">\(P_{dp}(y_t)=softmax(h_t^TW_s+b_s)\)</span>，将经过编码器的结果经过线性变换直接输出</p>
+<p>另一部分则是利用CRF层对token之间的依赖关系建模 <span
+class="math display">\[
+P_{crf}(Y|X)=\frac{1}{Z(X)}exp(\sum_{t=1}^{T&#39;}s(y_t) +
+\sum_{t=2}^{T&#39;}t(y_{t-1},y_t))
+\]</span> 这其中<span
+class="math inline">\(Z(X)\)</span>是归一化因子，<span
+class="math inline">\(s(y_t)\)</span>是在第t时间步<span
+class="math inline">\(y_t\)</span>的得分，可以用直接预测得到的分数<span
+class="math inline">\(s_t = h_t^TW_s+b_s\)</span></p>
+<p><span
+class="math inline">\(t(y_{t-1},y_t)\)</span>是转移分数，即从<span
+class="math inline">\(y_{t-1}\)</span>到<span
+class="math inline">\(y_t\)</span>的概率，一般会使用转移矩阵来表示，即<span
+class="math inline">\(t(y_{t-1},y_t)=M_{y_{t-1},y_t}\)</span>然而一般的语言任务中词汇表都会很大，此时<span
+class="math inline">\(M\)</span>会非常大，为解决该问题，作者将<span
+class="math inline">\(M\)</span>分解为两个小的矩阵<span
+class="math inline">\(E_1,E_2\)</span> <span class="math display">\[
+M =E_1E_2^T
+\]</span></p>
+<h4 id="焦点惩罚训练-training-with-focal-penalty">1.4 焦点惩罚训练
+Training with Focal Penalty</h4>
+<p>在GEC任务中由于大部分句子中的大部分单词都是正确的不需要修改，这就会导致在一般的loss计算下，loss值会快速下降，然而真正错误的部分还没有被修正</p>
+<p>为了修正该问题，作者引入了一个trick，将损失函数改为 <span
+class="math display">\[
+\mathcal{L}_{dp}^{&#39;} = -\sum_{t=1}^{T&#39;}(1-P_{dp}(y_t|X))^\gamma
+logP_{dp}(y_t|X)
+\\ \mathcal{L}_{crf}^{&#39;} = -(1-P_{crf}(Y|X))^\gamma logP_{crf}(Y|X)
+\\ \mathcal{L}^{&#39;} =\mathcal{L}_{dp}^{&#39;} +
+\mathcal{L}_{crf}^{&#39;}
+\]</span></p>
+<h3 id="结论-1">结论</h3>
+<p>作者为了验证自己的模型可以有效处理可变长度纠错，自己在HybirdSet数据集的基础上构建了变长数据集TtTSet，并在此数据集和SIGHAN15上做了不同模型的对比试验</p>
+<figure>
+<img src="img\image-20211103101842402.png"
+alt="image-20211103101842402" />
+<figcaption aria-hidden="true">image-20211103101842402</figcaption>
+</figure>
+<p>同时作者给出了在不加crf或者不加直接预测的对比试验，以证明模型结合两种任务是正确的</p>
+<figure>
+<img src="img\image-20211103102752404.png"
+alt="image-20211103102752404" />
+<figcaption aria-hidden="true">image-20211103102752404</figcaption>
+</figure>
+<p>最后作者认为未来可以引入更多的词法分析知识，如分词和命名实体识别，以进一步提高性能</p>
+<h2
+id="lm-criticlanguage-models-for-unsupervised-grammatical-error-correction">3.《LM-Critic:Language
+Models for Unsupervised Grammatical Error Correction》</h2>
+<p>Michihiro Yasunaga Jure Leskovec Percy Liang</p>
+<p>这是一篇无监督训练的文章，作者受到 <strong>Break-It-Fix-It</strong>
+框架的启发，想要将其引入到纠错领域，在 <strong>Break-It-Fix-It</strong>
+中会有一个批评家（如编译器），但对于GEC任务来说这个批评家并不存在。因此作者利用预训练模型来定义一个
+<strong>LM-Critic</strong></p>
+<p><strong>Break-It-Fix-It</strong>
+本来是用于对代码进行修复，其可以从未标记数据中获取真实配对数据</p>
+<p>作者指出直观上一个好的语言模型（LM）可以使用概率的高低去区分符合语法和不符合语法的句子。但在实际中无法使用直接指定一个阈值来判断句子是否符合语法，这是因为一个不符合语法的句子中可能会存在很多合法词汇而被给予较高的概率。因此作者想的是比较句子在局部邻域的概率，如果一个句子在局部邻域中概率最高，则认为句子是合法的</p>
+<figure>
+<img src="img\image-20211103143824484.png"
+alt="image-20211103143824484" />
+<figcaption aria-hidden="true">image-20211103143824484</figcaption>
+</figure>
+<p>在这里作者的 <strong>LM-Critic</strong>
+只用来评价一个句子是合乎语法还是不符合语法的</p>
+<p>作者在这里提出了一个局部最优概念，其是根据两个直觉得到的</p>
+<ol type="1">
+<li>对于一个合乎语法的句子和其不合乎语法的句子相比存在 <span
+class="math inline">\(p(x_{bad}&lt;p(x_{good}))\)</span></li>
+<li>对于每个句子而言其有一个最符合语法的准确句子，在该句子周围分布着各种不合乎语法的版本这一系列集合称为<span
+class="math inline">\(B(x)\)</span></li>
+</ol>
+<p>由此作者得到了判断句子是否合乎语法的方法，即判断句子是否是局部最优的</p>
+<h3 id="实现">实现</h3>
+<p>接下来作者描述了如何实现 <strong>LM-Critic</strong></p>
+<p>由于真实的邻域<span
+class="math inline">\(B(x)\)</span>是无法得到的，因此作者设计了一种扰动函数来构建<span
+class="math inline">\(B(x)\)</span>的近似<span
+class="math inline">\(\hat{B}(x)\)</span></p>
+<p>这里作者给出了三种扰动函数</p>
+<ol type="1">
+<li>编辑距离为1：随机插入小写字母，删除一个字符，替换字符，交换两个相邻字符</li>
+<li>编辑距离为1 + 单词：随机插入，删除，替换一个单词</li>
+<li>编辑距离为1 +
+单词纠正：第二种扰动存在修改原句子含义的情况，在这里去掉该情况</li>
+</ol>
+<p>作者为了验证之前的直觉还做了实验</p>
+<figure>
+<img src="img\image-20211103160401906.png"
+alt="image-20211103160401906" />
+<figcaption aria-hidden="true">image-20211103160401906</figcaption>
+</figure>
+<p>对于那些坏句子概率比好句子高的情况，其中大部分是由于标点符号引起的</p>
+<figure>
+<img src="img\image-20211103163645994.png"
+alt="image-20211103163645994" />
+<figcaption aria-hidden="true">image-20211103163645994</figcaption>
+</figure>
+<p>作者实验发现对于上面说的三种扰动方法来说，第一种扰动空间小导致对好的句子做出错误预测，第二种扰动空间较大会对坏的句子做出错误预测，第三种则比较平衡</p>
+<figure>
+<img src="img\image-20211103164400176.png"
+alt="image-20211103164400176" />
+<figcaption aria-hidden="true">image-20211103164400176</figcaption>
+</figure>
+<p>经过实验后作者决定使用第三种扰动，采样设为100，并利用GPT2作为
+<strong>LM-Critic</strong></p>
+<p>之后作者利用 <strong>LM-Critic</strong> 和 <strong>fixer</strong>
+来交替实现 GEC</p>
+<figure>
+<img src="img\image-20211103172930864.png"
+alt="image-20211103172930864" />
+<figcaption aria-hidden="true">image-20211103172930864</figcaption>
+</figure>
+<h3 id="结论-2">结论</h3>
+<p>作者在有监督和无监督下均作了实验：</p>
+<p>无监督：</p>
+<figure>
+<img src="img\image-20211104093724351.png"
+alt="image-20211104093724351" />
+<figcaption aria-hidden="true">image-20211104093724351</figcaption>
+</figure>
+<p>有监督：</p>
+<figure>
+<img src="img\image-20211104093858523.png"
+alt="image-20211104093858523" />
+<figcaption aria-hidden="true">image-20211104093858523</figcaption>
+</figure>
+<h2
+id="improving-grammatical-error-correction-with-data-augmentation-by-editing-latent-representation">4.《Improving
+Grammatical Error Correction with Data Augmentation by Editing Latent
+Representation》</h2>
+<p>Zhaohong Wan Xiaojun Wan Wenguang Wang ICCL</p>
+<p>作者主要研究了数据增强在GEC上的实现，这里作者是通过修改句子潜在表示，来生成各种错误类型的句子</p>
+<figure>
+<img src="img\image-20211104111250555.png"
+alt="image-20211104111250555" />
+<figcaption aria-hidden="true">image-20211104111250555</figcaption>
+</figure>
+<h3 id="实现方法">实现方法</h3>
+<p>其训练编码器，解码器和错误类型分类器,对句子的潜在表示中添加扰动向量来训练样本</p>
+<p>首先训练编码器<span
+class="math inline">\(\phi_E()\)</span>对输入序列进行编码生成潜在表示<span
+class="math inline">\(h_x\)</span>，随后由错误分类器对其进行分类得到错误类型<span
+class="math inline">\(z&#39;\)</span> <span class="math display">\[
+h_x = \phi_E(x)
+\\  z&#39;=C(h_x)
+\]</span> 经过训练得到编码器后，采用自编码的方式训练译码器<span
+class="math inline">\(\phi_D\)</span>，其目标是最小化输入<span
+class="math inline">\(x\)</span>和输出<span
+class="math inline">\(\widetilde{x}\)</span>之间的负对数似然 <span
+class="math display">\[
+\widetilde{x}=\phi_D(h_x)
+\\ J(h_x)=-\sum_{t=1}^{L}logP(x_t|\widetilde{x}_{&lt;t},h_x)
+\]</span>
+在将上面的模型训练后就可以得到用来生成新数据的模型，其主要是在中间的潜在表示<span
+class="math inline">\(h_x\)</span>上加扰动<span
+class="math inline">\(r\)</span>，再利用解码器生成额外的训练样本</p>
+<p>首先指定想要生成的错误类型，之后计算扰动<span
+class="math inline">\(\hat{r}\)</span>，其应该满足使得<span
+class="math inline">\(L(h_X+r,z,z&#39;)\)</span>最小同时为了防止篡改太多元语义，这里可以限制<span
+class="math inline">\(r\)</span>的二范数即 <span class="math display">\[
+\hat{r}=\underset{r,||r||\leq\epsilon}{argmin}\{L(h_x+r,z,z&#39;)\}
+\]</span> 但是这个计算很难精确得到，为此我们可以使用线性化的技术来计算
+<span class="math inline">\(\hat{r}\)</span>： <span
+class="math display">\[
+\hat{r}=-\epsilon g/||g||_2
+\\ g =\bigtriangledown_{h_x}L(h_x,z,z&#39;)
+\]</span> 最后利用译码器对 <span
+class="math inline">\(h_x+\hat{r}\)</span> 进行译码得到错误句子 <span
+class="math inline">\(x&#39;\)</span></p>
+<h3 id="结论-3">结论</h3>
+<figure>
+<img src="img\image-20211104170600170.png"
+alt="image-20211104170600170" />
+<figcaption aria-hidden="true">image-20211104170600170</figcaption>
+</figure>
+<h2
+id="plome-pre-training-with-misspelled-knowledge-for-chinese-spelling-correction">5.《PLOME:
+Pre-training with Misspelled Knowledge for Chinese Spelling
+Correction》</h2>
+<p>Shulin Liu, Tao Yang, Tianchi Yue, Feng Zhang, Di Wang</p>
+<p>作者想在预训练阶段就引入错误示例，以此来训练一个语言模型</p>
+<p>这里作者引入的错误示例不仅有形声字还有象形字</p>
+<figure>
+<img src="img\image-20220105102933680.png"
+alt="image-20220105102933680" />
+<figcaption aria-hidden="true">image-20220105102933680</figcaption>
+</figure>
+<p>在之前已经有人将预训练好的语言模型应用到 <strong>CSC</strong>
+任务上，但由于 <strong>CSC</strong>
+任务和语言模型训练之间相互独立，因此带来的提升并不高，因此作者提出一种专用于
+<strong>CSC</strong> 任务的预训练模型</p>
+<h3 id="预训练阶段">预训练阶段</h3>
+<p>训练的时候作者使用混淆数据集中的文字随机替代原句子中的文字，与
+<strong>BERT</strong> 中的 <strong>MASK</strong> 标记类似</p>
+<figure>
+<img src="img\image-20220105104047476.png"
+alt="image-20220105104047476" />
+<figcaption aria-hidden="true">image-20220105104047476</figcaption>
+</figure>
+<p>作者提出的生成混淆的方法为：60%被替换为读音相似，15%替换为视觉相似，15%保持不动，10%替换为其它字</p>
+<p>最终的预训练结构如图</p>
+<figure>
+<img src="img\image-20220105105742750.png"
+alt="image-20220105105742750" />
+<figcaption aria-hidden="true">image-20220105105742750</figcaption>
+</figure>
+<p>最终字符的 <strong>Embedding</strong>
+是由字符、位置、拼音、笔画得到的，其中前两者由查找表得到，后两者由
+<strong>GRU</strong> 网络得到</p>
+<figure>
+<img src="img\image-20220105110040743.png"
+alt="image-20220105110040743" />
+<figcaption aria-hidden="true">image-20220105110040743</figcaption>
+</figure>
+<p>在输出部分，模型会输出两个预测，一个是字符预测一个是拼音预测</p>
+<h3 id="微调阶段">微调阶段</h3>
+<p>在微调阶段训练的目标和预训练阶段一致，但是在训练的时候会对每个字进行预测，而不是像预训练的时候只对
+<strong>MASK</strong> 进行预测</p>
+<p>推理阶段： <span class="math display">\[
+p_j(y_i=j|X)=p_c(y_i=j|X)*p_p(g_i=j^p|X)
+\\ p_j(y_i|X)=[p_p(g_i|X)\cdot I^T]\odot p_c(y_i|X)
+\\ \widehat{y}_i=argmax\ \ p_j(y_i|X)
+\]</span> 这其中 <span class="math inline">\(I\in R^{n_c \times n_p
+}\)</span> ，如果第 <span class="math inline">\(i\)</span> 个字符读音为
+<span class="math inline">\(j\)</span> 则 <span
+class="math inline">\(I_{i,j}\)</span> 为1</p>
+<p>即实现预测结果结合预测读音和预测字符</p>
+<h3 id="结果">结果</h3>
+<figure>
+<img src="img\image-20220105143456995.png"
+alt="image-20220105143456995" />
+<figcaption aria-hidden="true">image-20220105143456995</figcaption>
+</figure>
+<h2
+id="spellgcn-incorporating-phonological-and-visual-similarities-into-language-models-for-chinese-spelling-check">6.《SpellGCN:
+Incorporating Phonological and Visual Similarities into Language Models
+for Chinese Spelling Check》</h2>
+<p>Xingyi Cheng、Weidi Xu、Kunlong Chen、Shaohua Jiang、Feng
+Wang、Taifeng Wang、Wei Chu、Yuan Qi</p>
+<p>作者将 <strong>GCN</strong> 结合预训练模型用于到 <strong>CSC</strong>
+任务上</p>
+<p>看不太懂 (有时间了再了解一下GCN)</p>
+<h2
+id="integrated-semantic-and-phonetic-post-correction-for-chinese-speech-recognition">7.《Integrated
+Semantic and Phonetic Post-correction for Chinese Speech
+Recognition》</h2>
+<p>Yi-Chang Chen</p>
+<p>作者将 <strong>MLM</strong> 语言模型应用到 <strong>ASR</strong>
+后</p>
+<p>作者想法非常简单，先用简单的分类器来识别错误的字，之后再将识别为错误的字标记
+<strong>MASK</strong>，随后利用 <strong>MLM</strong>
+模型对其进行重新预测和纠正</p>
+<p>作者尝试了三种不同的 <strong>MASK</strong>
+策略，mask-all-and-replace-all, mask-one-and-replace-one,
+mask-all-and-replace-one.</p>
+<figure>
+<img src="img\image-20220106104109423.png"
+alt="image-20220106104109423" />
+<figcaption aria-hidden="true">image-20220106104109423</figcaption>
+</figure>
+<p>同时作者引入了 <strong>音素距离</strong> ，来辅助纠正</p>
+<figure>
+<img src="img\image-20220106104827483.png"
+alt="image-20220106104827483" />
+<figcaption aria-hidden="true">image-20220106104827483</figcaption>
+</figure>
+<p>作者利用如下公式来衡量拼音距离，并计算最终得分 <span
+class="math display">\[
+S(c,c&#39;)=S_P(p_c^I,p_{c&#39;}^I)+S_P(p_c^F,p_{c&#39;}^F)+S_T(p_c^T,p_{c&#39;}^T)
+\\ \psi(P_{candidate},S(c_{error},c_{candidate}))=P_{candidate}\times
+exp(-\alpha \times S(c_{error},c_{candidate}))
+\]</span> 其中 <span class="math inline">\(I,F,T\)</span> 分别表示
+辅音，元音，音调。辅音和元音之间的距离用欧氏距离来衡量</p>
+<p><span class="math inline">\(\alpha\)</span>
+经过作者实验控制在500左右比较好</p>
+<h2
+id="asr-error-correction-with-augmented-transformer-for-entity-retrieval">8.《ASR
+Error Correction with Augmented Transformer for Entity Retrieval》</h2>
+<p>Haoyu Wang, Shuyan Dong, Yue Liu, James Logan, Ashish Kumar Agrawal,
+Yang Liu</p>
+<p>作者关注的是特定领域的 <strong>ASR</strong>
+对特定的领域的词汇进行纠正</p>
+<p>作者提出的方法是基于 <strong>vanilla Transformer</strong>
+同时引入了音素特征</p>
+<figure>
+<img src="img\image-20220106151642826.png"
+alt="image-20220106151642826" />
+<figcaption aria-hidden="true">image-20220106151642826</figcaption>
+</figure>
+<figure>
+<img src="img\image-20220106171235878.png"
+alt="image-20220106171235878" />
+<figcaption aria-hidden="true">image-20220106171235878</figcaption>
+</figure>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>文本纠错</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>语言模型文献</title>
+    <url>/2022/09/10/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%96%87%E7%8C%AE/</url>
+    <content><![CDATA[<p>整理语言模型相关文献</p>
+<span id="more"></span>
+<p>语言模型一般指用来衡量一句话符合语言习惯的概率，目前主流的是采用大规模数据参与训练的预训练模型BERT等</p>
+<h2
+id="intrinsic-dimensionality-explains-the-effec--tiveness-of-language-model-fine-tuning">1.《INTRINSIC
+DIMENSIONALITY EXPLAINS THE EFFEC- TIVENESS OF LANGUAGE MODEL
+FINE-TUNING》</h2>
+<p>Armen Aghajanyan, Luke Zettlemoyer, Sonal Gupta</p>
+<p>作者这篇论文是基于《MEASURING THE INTRINSIC DIMENSION OF OBJECTIVE
+LANDSCAPES》</p>
+<p>作者试图解释为什么目前主流的fine-tuned可以生效，作者认为可以通过
+<strong>intrinsic dimension</strong>
+（本征维度）来解释，作者研究发现常见的预训练模型都有很低的
+<strong>intrinsic dimension</strong>
+这意味着可以通过很小的维度参数重载实现和全参数fine-tuned一样的效果。</p>
+<p>作者在文章一开始提出了为什么预训练模型可以只用简单的梯度下降（relative
+vanilla gradient
+descent）就可以在小型数据集上经过微调起作用。作者认为可以通过对<strong>intrinsic
+dimension</strong> 的研究来寻找这个问题的答案，<strong>intrinsic
+dimension</strong>
+代表了为了解决目标函数所定义的问题所需的最小纬度。可以通过测量本征纬度知道需要多少自由参数来实现和fine-tuned一样的效果</p>
+<h3 id="intrinsic-dimension">intrinsic dimension</h3>
+<p><strong>intrinsic dimension</strong>
+被定义为目标函数达到满意的结果所需的最小参数数量（<a
+href="https://arxiv.org/abs/1804.08838">Li et al. 2018</a>）</p>
+<p>然而根据定义计算目标函数的 <strong>intrinsic dimension</strong>
+是十分困难的，因此作者采用了启发式计算方法来计算其上限</p>
+<p>定义 <span
+class="math inline">\(\theta^D=[\theta_0,\theta_1,\dots,\theta_m]\)</span>是一组描述模型<span
+class="math inline">\(f(\cdot,\theta)\)</span>维度为<span
+class="math inline">\(D\)</span>的参数，在训练的时候不是直接使用全参数<span
+class="math inline">\(\theta^D\)</span>去更新而是通过子空间去更新，再将更新的参数映射回<span
+class="math inline">\(D\)</span>​维度，其过程如下面公式所描述的： <span
+class="math display">\[
+\theta^D=\theta^D_0+P(\theta^d)
+\]</span></p>
+<p>其中<span
+class="math inline">\(P(\cdot)\)</span>是一个映射负责从低维<span
+class="math inline">\(d\)</span>映射到高维度<span
+class="math inline">\(D\)</span>当在低维度训练达到期望的时候称维度<span
+class="math inline">\(d\)</span>​为该模型的 <strong>intrinsic
+dimension</strong></p>
+<p>作者在这里使用的是 <strong>Fastfood transform</strong> 变换（<a
+href="https://arxiv.org/abs/1408.3060">Le et al.2013</a>） <span
+class="math display">\[
+\theta^D=\theta^D_0+\theta^dM
+\\M=HG\Pi HB
+\]</span> 其中<span class="math inline">\(H\)</span>
+是<strong>Hadamard</strong> 矩阵，<span
+class="math inline">\(G\)</span>是随机正态分布的对角矩阵，<span
+class="math inline">\(B\)</span>是对角线元素为<span
+class="math inline">\(\pm1\)</span>的随机等概率对角矩阵，<span
+class="math inline">\(\Pi\)</span>是随机置换矩阵</p>
+]]></content>
+      <categories>
+        <category>文献归纳</category>
+      </categories>
+      <tags>
+        <tag>语言模型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>语音信号处理</title>
+    <url>/2022/09/10/%E8%AF%AD%E9%9F%B3%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86/</url>
+    <content><![CDATA[<p>介绍语音信号处理中各种常用方法</p>
+<span id="more"></span>
+<h2 id="短时能量">1.短时能量</h2>
+<p><span class="math display">\[
+E(i)=\sum_{n=0}^{L-1}y_i^2(n)
+\]</span></p>
+<h2 id="短时平均过零率">2.短时平均过零率</h2>
+<p><span class="math display">\[
+Z(i)=\frac{1}{2}\sum_{n=0}^{L-1}|sgn[y_i(n)]-sgn[y_i(n-1)]|
+\]</span></p>
+<p>浊音有相对较低的过零率，清音则有相对较高的过零率</p>
+<p>在背景噪声较小时可以用平均能量判断语音信号的起点和终点，在噪声较大时则需要用短时平均过零率</p>
+<h2 id="短时自相关函数">3.短时自相关函数</h2>
+<p><span class="math display">\[
+R_i(k)=\sum_{n=0}^{L-k-1}y_i(n)y_i(n+k)
+\]</span></p>
+<p>可以用于端点检测和基音的提取，在韵母基音频率整数倍处将出现峰值特性，在声母中则看不到明显的峰值</p>
+<h2 id="短时平均幅度差函数">4.短时平均幅度差函数</h2>
+<p><span class="math display">\[
+D_i(k)=\sum_{n=0}^{L-k-1}|y_i(n+k)-y_i(n)|
+\]</span></p>
+<p>可以用于提取基音频率</p>
+<h2 id="短时傅里叶变换stft">5.短时傅里叶变换(STFT)</h2>
+<p><span class="math display">\[
+X_n(e^{j\omega})=\sum_{m=-\infty}^{\infty}x(m)\omega(n-m)e^{-j\omega n}
+\]</span></p>
+<p>矩形窗，海宁窗，汉明窗的主瓣宽度与窗长度成反比，窗越长越能更好逼近短时语音的频谱</p>
+<p>但窗长太长时已经不满足短时平稳特性，同时会导致时间分辨率相应下降</p>
+<h2 id="语谱图">6.语谱图</h2>
+<p><img src="img/image-20210107145856350.png" alt="image-20210107145856350" style="zoom: 67%;" /></p>
+<h2 id="同态处理">7.同态处理</h2>
+<p>卷积同态处理是将输入卷积信号经过系统变换后输出一个处理过的卷积信号</p>
+<p>由两个特征子系统<span class="math inline">\(D_*[\  \ ]\)</span>,<span
+class="math inline">\(D_*^{-1}[\ \ ]\)</span>和一个线性子系统<span
+class="math inline">\(L[\ \ ]\)</span>组成</p>
+<p><span class="math inline">\(D_*[\ \ ]\)</span> :
+将卷积性信号转为加性信号的运算,对<span
+class="math inline">\(x(n)=x_1(n)*x_2(n)\)</span>进行如下运算： <span
+class="math display">\[
+Z[x(n)]=Z[x_1(n)*x_2(n)]=X_1(z)\cdot X_2(z)=X(z)\\
+lnX(z)=lnX_1(z)+lnX_2(z)=\widehat{X}_1(z)+\widehat{X}_2(z)=\widehat{X}(z)\\
+Z^{-1}[\widehat{X}(z)]=Z^{-1}[\widehat{X}_1(z)+\widehat{X}_2(z)]=\widehat{x}_1(n)+\widehat{x}_2(n)=\widehat{x}(n)
+\]</span> 第二个子系统<span class="math inline">\(L[\ \
+]\)</span>是普通线性系统，满足线性叠加定理，用于对加性信号进行线性变幻和处理</p>
+<p>第三个子系统<span class="math inline">\(D_*^{-1}[\ \
+]\)</span>是第一个子系统的逆变换，将加性信号反变换为卷积性信号，其对<span
+class="math inline">\(\widehat{y}_1(n)+\widehat{y}_2(n)\)</span>进行逆变换
+<span class="math display">\[
+Z[\widehat{y}(n)]=\widehat{Y}_1(z)+\widehat{Y}_2(z)=\widehat{Y}(z)\\
+exp(\widehat{Y}(z))=Y(z)=Y_{1}(z)\cdot Y_{2}(z)\\
+y(n)=Z^{-1}[Y_{1}(z)\cdot Y_{2}(z)]=y_1(n)*y_2(n)
+\]</span></p>
+<h2 id="复倒谱和倒谱">8.复倒谱和倒谱</h2>
+<p>在同态处理中，<span
+class="math inline">\(\widehat{x}(n)\)</span>和<span
+class="math inline">\(\widehat{y}(n)\)</span>信号也是时域序列，但其所处的离散时间域成为复倒频谱域，<span
+class="math inline">\(\widehat{x}(n)\)</span>为<span
+class="math inline">\(x(n)\)</span>的复倒谱 <span
+class="math display">\[
+FT[x(n)]=X(\omega)\\
+\widehat{X}(\omega)=ln[X(\omega)]\\
+\widehat{x}(n)=FT^{-1}[\widehat{X}(\omega)]
+\]</span> 进一步： <span class="math display">\[
+\widehat{X}(\omega)=ln|X(\omega)|+jarg(X(\omega))\\
+\]</span> 若只取实数部分： <span class="math display">\[
+c(n)=FT^{-1}[ln|X(\omega)|]
+\]</span> 称<span
+class="math inline">\(c(n)\)</span>为倒频谱，简称倒谱，其在运算时丢失了相位信息</p>
+<h2 id="离散余弦变换dct">9.离散余弦变换（DCT）</h2>
+<p><span class="math display">\[
+X(k)=\alpha(k)\sum_{n=0}^{N-1}x(n)cos[\frac{\pi(2n+1)k}{2N}]\\
+x(n)=\sum_{k=0}^{N-1}\alpha(k)X(k)cos[\frac{\pi(2n+1)k}{2N}]
+\]</span></p>
+<p>其中 <span class="math display">\[
+\alpha(k)=
+\begin{cases}
+\sqrt{1/N}\ \ \  k=0\\
+\sqrt{2/N}\ \ \ 1\le{k}\le{N-1}
+\end{cases}
+\]</span> 同时可以用矩阵进行表示 <span class="math display">\[
+\begin{bmatrix}
+X(0)\\
+X(1)\\
+\vdots\\
+X(N-1)
+\end{bmatrix}
+=\sqrt{2/N}
+\begin{bmatrix}
+\frac{1}{\sqrt{2}}&amp;\frac{1}{\sqrt{2}}&amp;\cdots&amp;\frac{1}{\sqrt{2}}\\
+cos\frac{\pi}{2N}&amp;cos\frac{3\pi}{2N}&amp;\cdots&amp;cos\frac{(2N-1)\pi}{2N}\\
+\vdots&amp;\vdots&amp;\cdots&amp;\vdots\\
+cos\frac{(N-1)\pi}{2N}&amp;cos\frac{3(N-1)\pi}{2N}&amp;\cdots&amp;cos\frac{(2N-1)(N-1)\pi}{2N}
+\end{bmatrix}
+\begin{bmatrix}
+x(0)\\
+x(1)\\
+\vdots\\
+x(N-1)
+\end{bmatrix}
+\]</span></p>
+<h2 id="mel频率倒谱系数mfcc分析">10.Mel频率倒谱系数（MFCC）分析</h2>
+<p>MFCC的分析是基于人的听觉机理 <span class="math display">\[
+F_{mel}=1125log(1+f/700)
+\]</span> <span
+class="math inline">\(F_{mel}\)</span>是以Mel为单位的感知频率，将语音信号频谱变换到感知频域中可以更好的模拟听觉处理的过程</p>
+<p>Mel滤波器组：将语音在频域上划分成一系列的频率群组成的滤波器组</p>
+<p>每个滤波器具有三角滤波特性，中心频率为<span
+class="math inline">\(f(m)\)</span>，在Mel频率范围内，这些滤波器是等宽的
+<span class="math display">\[
+H_m(k)=\begin{cases}
+0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ k&lt;f(m-1)\\
+\frac{k-f(m-1)}{f(m)-f(m-1)}\ \ \ f(m-1)\le k \le f(m)\\
+\frac{f(m+1)-k}{f(m+1)-f(m)}\ \ \ f(m)&lt;k\le f(m+1)
+\end{cases}
+\]</span> 其中 <span class="math display">\[
+f(m)=(\frac{N}{f_s})F_{mel}^{-1}(F_{mel}(f_l)+m\frac{F_{mel}(f_h)-F_{mel}(f_l)}{M+1})
+\]</span> <span
+class="math inline">\(f_l\)</span>为滤波器频率范围内的最低频率，<span
+class="math inline">\(f_h\)</span>为滤波器频率范围内的最高频率，N为DFT长度，<span
+class="math inline">\(f_s\)</span>为采样函数 <span
+class="math display">\[
+F_{mel}^{-1}(b)=700(e^{b/1125}-1)
+\]</span></p>
+<h3 id="mfcc特征参数提取">MFCC特征参数提取：</h3>
+<figure>
+<img src="image-20210108091503188.png" alt="image-20210108091503188" />
+<figcaption aria-hidden="true">image-20210108091503188</figcaption>
+</figure>
+<p>预处理包括预加重，分帧，加窗</p>
+<p>预加重：补偿高频分量的损失，提升高频分量，<span
+class="math inline">\(H(Z)=1-\alpha z^{-1}\)</span></p>
+<p>分帧：将语音信号分成较短的帧，每帧可以看做稳态信号，相邻两帧之间有部分重叠</p>
+<p>加窗：减少频域中的泄露</p>
+<p>计算通过Mel滤波器的能量 <span class="math display">\[
+S(i,m)=\sum_{k=0}^{N-1}E(i,k)H_{m}(k)
+\]</span> 计算DCT倒谱 <span class="math display">\[
+mfcc(i,n)=\sqrt{\frac{2}{M}}\sum_{m=0}^{M-1}log[S(i,m)]cos(\frac{\pi
+n(2m-1)}{2M})
+\]</span> MFCC参数可以用于语音识别</p>
+<h2 id="小波变换wt">11.小波变换（WT）</h2>
+<p>连续小波变换（CWT）： <span class="math display">\[
+W_f（a,b）=&lt;f,\psi_{a,b}&gt;=\frac{1}{\sqrt{a}}\int_{-\infin}^{\infin}f(t)\psi^*(\frac{t-b}{a})dt
+\]</span> <span class="math inline">\(a&gt;0\)</span>为尺度因子，<span
+class="math inline">\(b\)</span>为位移因子，<span
+class="math inline">\(\psi_{a,b}(t)\)</span>为<span
+class="math inline">\(\psi_{a,b}(t)=\frac{1}{\sqrt{a}}\psi(\frac{t-b}{a})\)</span>，其是母小波<span
+class="math inline">\(\psi(t)\)</span>经过移位和伸缩所产生的一族函数，称为小波基函数或者简称小波基。其是为了解决STFT的时间分辨率和频谱分辨率不可兼得的情况，一般信号是低频持续整个过程，中间会出现高频信号。</p>
+<p>离散小波变换（DWT）：</p>
+<p>对尺度因子和位移因子进行离散化处理 <span class="math display">\[
+a=a_{0}^m，b=nb_0a_0^m
+\]</span> 则离散小波函数表示为： <span class="math display">\[
+\psi_{m,n}(t)=\frac{1}{\sqrt{a_0^m}}\psi(\frac{t-nb_0a_0^m}{a_{0}^m})=\frac{1}{\sqrt{a_0^m}}\psi(a_{0}^mt-nb_0)
+\]</span> 相应的离散小波变换表示为： <span class="math display">\[
+W_{f}(m,n)=\int_{-\infin}^{\infin}f(t)\psi_{m,n}^*(t)dt
+\]</span></p>
+<p>当取<span class="math inline">\(a_0=2\)</span>,<span
+class="math inline">\(b_0=1\)</span>时可以得到二进小波，在实际应用中为了使小波变换的计算更有效，通常构造的小波函数具有正交性
+<span class="math display">\[
+&lt;\psi_{m,n},\psi_{j,k}&gt; =
+\int_{-\infin}^{\infin}\psi_{m,n}(t)\psi_{j,k}^*(t)dt=\delta_{m,j}\delta_{n,k}
+\]</span></p>
+<h2 id="haar小波分析">12.Haar小波分析</h2>
+<p>Haar尺度函数定义为： <span class="math display">\[
+\phi(x)=
+\begin{cases}
+1 \ \ \ \ 0\le x&lt;1\\
+0 \ \ \ \ 其他
+\end{cases}
+\]</span> 令<span class="math inline">\(V_{0}\)</span>是所有形如<span
+class="math inline">\(\sum_{k\in Z}a_K\phi(x-k), \ \ a_k\in
+R\)</span>的函数组成的空间，<span
+class="math inline">\(k\)</span>在任一有限整数范围内取值，更一般的<span
+class="math inline">\(j\)</span>级阶梯函数空间表示为<span
+class="math inline">\(V_j\)</span> <span class="math display">\[
+\{\cdots,\phi(2^jx+1),\phi(2^jx),\phi(2^jx-1)\cdots\}
+\]</span> 且<span class="math inline">\(V_0\subset V_1\subset \cdots
+V_{j-1}\subset
+V_j\cdots\)</span>，则随着分辨率的提高，不会损失任何信息</p>
+<p>函数集{<span class="math inline">\(2^{j/2}\phi(2^jx-k);k\in
+Z\)</span>}是<span
+class="math inline">\(V_j\)</span>的一个标准正交基，系数的存在是因为<span
+class="math inline">\(\int_{-\infin}^{\infin}\phi(2^jx)^2dx=1/2^j\)</span></p>
+<p>Haar小波： <span class="math display">\[
+\psi(x)=\phi(2x)-\phi(2x-1)
+\]</span> 其满足</p>
+<p>​ 1.<span class="math inline">\(\psi\)</span>是<span
+class="math inline">\(V_1\)</span>的成员</p>
+<p>​ 2.<span class="math inline">\(\psi\)</span>与<span
+class="math inline">\(V_0\)</span>正交，即<span
+class="math inline">\(\int \psi(x)\phi(x-k)dx=0\)</span></p>
+<p>令<span class="math inline">\(W_j\)</span>是形如<span
+class="math inline">\(\sum_{k\in Z}a_k\psi(2^jx-k);a_k\in
+R\)</span>的函数构成的空间，仅有有限个<span
+class="math inline">\(a_k\)</span>非0，则<span
+class="math inline">\(W_j\)</span>是<span
+class="math inline">\(V_j\)</span>的正交补，即<span
+class="math inline">\(V_{j+1}=V_j\oplus W_j\)</span></p>
+<p>则不断分解得到：<span class="math inline">\(V_j=W_{j-1}\oplus
+W_{j-2}\oplus\cdots\oplus W_0\oplus V_0\)</span></p>
+<p>则<span class="math inline">\(V_j\)</span>中的中的任一<span
+class="math inline">\(f\)</span>可以唯一分解为：<span
+class="math inline">\(f=\omega_{j-1}+\omega_{j-2}+\cdots+\omega_0+f_0\)</span></p>
+<p><span
+class="math inline">\(L^2(R)\)</span>(平方可积函数域)可以被分为无限个正交直和：<span
+class="math inline">\(L^2(R)=V_0\oplus W_0\oplus
+W_1\oplus\cdots\)</span></p>
+<p>则对每个<span class="math inline">\(f\in
+L^2(R)\)</span>可唯一写成：<span
+class="math inline">\(f=f_0+\sum_{j=0}^\infin w_j\)</span></p>
+<p>写成极限<span
+class="math inline">\(f=f_0+\lim\limits_{N\to\infin}\sum_{j=0}^N\omega_j\)</span></p>
+<h2 id="多分辨率分析">13.多分辨率分析</h2>
+<p>令<span
+class="math inline">\(V_j,j=\cdots,-2,-1,0,1,2,\cdots\)</span>为<span
+class="math inline">\(L^2(R)\)</span>中的一函数子空间序列，若下列条件成立，则空间集合<span
+class="math inline">\({V_j,j\in Z}\)</span>称为依尺度函数<span
+class="math inline">\(\phi\)</span>的多分辨率分析</p>
+<p>1.嵌套性：<span class="math inline">\(V_j\subset V_{J+1}\)</span></p>
+<p>2.稠密性：<span class="math inline">\(\overline{\cup
+V_j}=L^2(R)\)</span> (是指<span
+class="math inline">\(L^2(R)\)</span>中的元素都可以被并集中的元素很好近似)</p>
+<p>3.分立性：<span class="math inline">\(\cap V_j={0}\)</span></p>
+<p>4.尺度性：<span class="math inline">\(f(x)\in
+V_j\)</span>，当且仅当<span class="math inline">\(f(2^{-j}x)\in
+V_0\)</span></p>
+<p>5.标准正交基：函数<span class="math inline">\(\phi\in
+V_0\)</span>，且<span class="math inline">\({\phi(x-k),k\in
+Z}\)</span>是<span class="math inline">\(V_0\)</span>的标准正交基</p>
+<p>紧支撑（有限支撑）：函数在一有限区间外恒等于0，则称其为有限支撑的</p>
+<p>设<span class="math inline">\(\{V_j;j\in
+Z\}\)</span>是一个依尺度函数<span
+class="math inline">\(\phi\)</span>的多分辨率分析，则对任一<span
+class="math inline">\(j\in Z\)</span>函数集<span
+class="math inline">\(\{\phi_{jk}(x)=2^{j/2}\phi(2^{j}x-k);k\in
+Z\}\)</span>是<span
+class="math inline">\(V_j\)</span>的一个标准正交基</p>
+<p>证明如下： <span class="math display">\[
+若f(x)\in
+V_j，则由性质4，f(2^{-j}x)为\phi(x-k)的线性组合，以2^jx替代x，则f(x)是\phi(2^jx-k)的线性组合\\
+正交性：&lt;\phi_{jk},\phi_{jl}&gt;=2^j\int_{-\infin}^{\infin}\phi(2^jx-k)\phi^*(2^jx-l)dx=\int_{-\infin}^{\infin}\phi(y-k)\phi^*(y-l)dy=\delta_{kl}
+\]</span> 尺度关系式： <span class="math display">\[
+\phi(x)=\sum_{k\in Z}p_k\phi(2x-k)\\
+p_k=2\int_{-\infin}^{\infin}\phi(x)\phi^*(2x-k)\\
+\]</span> 且<span class="math inline">\(\sum_{k\in Z}p_k=2\)</span></p>
+<p>将<span class="math inline">\(V_{j+1}\)</span>分解为<span
+class="math inline">\(V_j\)</span>和其正交补空间的<span
+class="math inline">\(W_j\)</span>的直和，这里<span
+class="math inline">\(W_j\)</span>是由<span
+class="math inline">\(\psi(2^jx-k)\)</span>张成的 <span
+class="math display">\[
+\psi(x)=\sum_{k\in Z}(-1)^k\overline{p_{1-k}}\phi(2x-k)
+\]</span></p>
+<h2 id="小波包变换">14.小波包变换</h2>
+<p>小波包分析能够为信号分析提供一种更精细的分析方法</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>语音信号处理</tag>
+      </tags>
+  </entry>
+</search>

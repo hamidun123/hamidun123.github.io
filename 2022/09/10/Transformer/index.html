@@ -19,29 +19,35 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"hamidun123.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="介绍DDP（DistributedDataParallel）使用">
+    <meta name="description" content="介绍Transformer基础知识">
 <meta property="og:type" content="article">
-<meta property="og:title" content="PyTorch 单机多卡训练方法">
-<meta property="og:url" content="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:title" content="Transformer">
+<meta property="og:url" content="https://hamidun123.github.io/2022/09/10/Transformer/index.html">
 <meta property="og:site_name" content="宇坤の博客">
-<meta property="og:description" content="介绍DDP（DistributedDataParallel）使用">
+<meta property="og:description" content="介绍Transformer基础知识">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/image-20210112141734011.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/zudAEJCTB5pFoZh.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/U3FCQ0.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/image-20210112155228788.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/image-20210113100222041.png">
+<meta property="og:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/MJnY847uNvWSaTk.png">
 <meta property="article:published_time" content="2022-09-10T12:59:12.000Z">
-<meta property="article:modified_time" content="2023-01-12T12:47:42.369Z">
+<meta property="article:modified_time" content="2023-01-12T13:07:07.681Z">
 <meta property="article:author" content="Yukun Qian">
-<meta property="article:tag" content="DDP">
-<meta property="article:tag" content="Pytorch">
+<meta property="article:tag" content="Transformer">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://hamidun123.github.io/2022/09/10/Transformer/img/image-20210112141734011.png">
 
 
-<link rel="canonical" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+<link rel="canonical" href="https://hamidun123.github.io/2022/09/10/Transformer/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/","path":"2022/09/10/PyTorch 单机多卡训练方法/","title":"PyTorch 单机多卡训练方法"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://hamidun123.github.io/2022/09/10/Transformer/","path":"2022/09/10/Transformer/","title":"Transformer"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>PyTorch 单机多卡训练方法 | 宇坤の博客</title>
+<title>Transformer | 宇坤の博客</title>
   
 
 
@@ -140,7 +146,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E6%A8%A1%E5%9E%8B%E6%95%B0%E6%8D%AE%E9%85%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text">1.初始化模型，数据，配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">2.构造数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A8%A1%E5%9E%8B%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">3.模型初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E8%AE%BE%E7%BD%AE"><span class="nav-number">4.</span> <span class="nav-text">4.训练设置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%9D%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">5.保存模型</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#encoder"><span class="nav-number">1.</span> <span class="nav-text">1.Encoder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#decoder"><span class="nav-number">2.</span> <span class="nav-text">2.Decoder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#attention"><span class="nav-number">3.</span> <span class="nav-text">3.Attention</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-head-attention"><span class="nav-number">4.</span> <span class="nav-text">4.Multi-Head Attention</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#position-encoding"><span class="nav-number">5.</span> <span class="nav-text">5.Position Encoding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#padding-mask"><span class="nav-number">6.</span> <span class="nav-text">6.Padding Mask</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#layer-normalization"><span class="nav-number">7.</span> <span class="nav-text">7.Layer Normalization</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -201,7 +207,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/">
+    <link itemprop="mainEntityOfPage" href="https://hamidun123.github.io/2022/09/10/Transformer/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -214,12 +220,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="PyTorch 单机多卡训练方法 | 宇坤の博客">
+      <meta itemprop="name" content="Transformer | 宇坤の博客">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          PyTorch 单机多卡训练方法
+          Transformer
         </h1>
 
         <div class="post-meta-container">
@@ -237,7 +243,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2023-01-12 20:47:42" itemprop="dateModified" datetime="2023-01-12T20:47:42+08:00">2023-01-12</time>
+      <time title="修改时间：2023-01-12 21:07:07" itemprop="dateModified" datetime="2023-01-12T21:07:07+08:00">2023-01-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -245,7 +251,7 @@
       </span>
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%95%99%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">教程</span></a>
+          <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
         </span>
     </span>
 
@@ -263,14 +269,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>116</span>
+      <span>1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>1 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -281,17 +287,82 @@
     
     
     <div class="post-body" itemprop="articleBody">
-        <p>介绍DDP（DistributedDataParallel）使用 <span id="more"></span></p>
-<h4 id="初始化模型数据配置">1.初始化模型，数据，配置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.distributed <span class="keyword">as</span> dist</span><br><span class="line"><span class="keyword">from</span> torch.nn.parallel <span class="keyword">import</span> DistributedDataParallel <span class="keyword">as</span> DDP</span><br><span class="line">parser = argparse.ArgumentParser()</span><br><span class="line">parser.add_argument(<span class="string">&quot;--local_rank&quot;</span>, default=-<span class="number">1</span>, <span class="built_in">type</span>=<span class="built_in">int</span>)</span><br><span class="line">FLAGS = parser.parse_args()</span><br><span class="line">local_rank = FLAGS.local_rank</span><br><span class="line"></span><br><span class="line"><span class="comment"># DDP初始化</span></span><br><span class="line">torch.cuda.set_device(local_rank)</span><br><span class="line">dist.init_process_group(backend=<span class="string">&#x27;nccl&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h4 id="构造数据">2.构造数据</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)</span><br><span class="line">trainloader = torch.utils.data.DataLoader(my_trainset, batch_size=<span class="number">16</span>, num_workers=<span class="number">2</span>, sampler=train_sampler)</span><br></pre></td></tr></table></figure>
-<h4 id="模型初始化">3.模型初始化</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">model = Transformer(<span class="number">46</span>, <span class="number">7004</span>, <span class="number">0</span>, <span class="number">0</span>).to(local_rank)</span><br><span class="line"></span><br><span class="line">model = DDP(model, device_ids=[local_rank], output_device=local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="训练设置">4.训练设置</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">train_loader.sampler.set_epoch(epoch)</span><br><span class="line">zhuyin = zhuyin.to(local_rank)</span><br><span class="line">text = text.to(local_rank)</span><br></pre></td></tr></table></figure>
-<h4 id="保存模型">5.保存模型</h4>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> dist.get_rank() == <span class="number">0</span>:</span><br><span class="line">	torch.save(model.module.state_dict(), <span class="string">&quot;checkpoints/transformer.pth&quot;</span>)</span><br></pre></td></tr></table></figure>
+        <p>介绍Transformer基础知识</p>
+<span id="more"></span>
+<p>Transformer避免使用循环神经网络，只使用注意力机制，其分为两个模块左边为encoder右边为decoder</p>
+<p><img src="img\image-20210112141734011.png" alt="image-20210112141734011" style="zoom: 80%;" /></p>
+<h3 id="encoder">1.Encoder</h3>
+<p>根据论文，Encoder由6个相同的layer组成，即图中左边单元，每个layer里面又有2个sub-layer分别为
+multi-head self-attention mechanism 和 fully connected feed-forward
+network，在每个sub-layer后加入了residual connection（残差连接）和layer
+normalization，因此每个sub-layer的输出为<span
+class="math inline">\(LayerNorm(x+Sublayer(x))\)</span>，为了引入残差连接，所有sub-layer和Embedding层输出的维度都是<span
+class="math inline">\(d_{model}=512\)</span></p>
+<h3 id="decoder">2.Decoder</h3>
+<p>与Encoder类似，但比其多一个sub-layer用于计算Encoder层输出的attention，同时由于模型是自回归（后面的token只取决于前面的token），因此在Decoder端加入mask保证训练和推理阶段的一致性，此处的mask处理是生成一个下三角全为0上三角为负无穷的矩阵，与之前的Scaled
+Score相加即可，此后再经过softmax后上三角全部变为0</p>
+<p><img src="img\zudAEJCTB5pFoZh.png" alt="img" style="zoom:60%;" /></p>
+<p><img src="img\U3FCQ0.png" alt="img" style="zoom:67%;" /></p>
+<h3 id="attention">3.Attention</h3>
+<p><span class="math display">\[
+Attention(Q,K,V)=softmax(\frac{QK^T}{\sqrt{d_k}})V
+\]</span></p>
+<p>在论文中其attention机制由于除去了<span
+class="math inline">\(\sqrt{d_k}\)</span>因此被叫做Scaled Dot-Product
+Attention，<span
+class="math inline">\(d_k\)</span>为输入的query和key的维度，作者同时解释了为何使用点积形式的attention，因为其可以写成矩阵乘法以便计算。同时作者说经过其测试，较小的<span
+class="math inline">\(d_k\)</span>值时，加性和点积计算结果差不多，但随着<span
+class="math inline">\(d_k\)</span>增大，加性点积表现效果更好，他们猜测是点积放大了幅度，因此进行归一化处理，即除以<span
+class="math inline">\(\sqrt{d_k}\)</span>（假设原来<span
+class="math inline">\(q\)</span>和<span
+class="math inline">\(k\)</span>的方差为1，则点积后方差会变为<span
+class="math inline">\(d_k\)</span>）</p>
+<p><img src="img\image-20210112155228788.png" alt="image-20210112155228788" style="zoom: 80%;" /></p>
+<h3 id="multi-head-attention">4.Multi-Head Attention</h3>
+<p>论文中使用的是Multi-Head Attention
+其将V,K,Q经过h次线性变换分别计算注意力值再拼接起来 <span
+class="math display">\[
+MultiHead(Q,K,V)=Concat(head_1,\cdots,head_h)W^O\\where\ \
+head_i=Attention(QW_i^Q,KW_i^K,VW_i^V)\\
+W_i^Q\in\mathbb{R}^{d_{model}\times
+d_k},W_i^k\in\mathbb{R}^{d_{model}\times
+d_k},W_i^V\in\mathbb{R}^{d_{model}\times
+d_v},W_i^O\in\mathbb{R}^{hd_v\times d_{model}}
+\]</span>
+使用这种注意力机制，其可以关注不同子空间的信息，相当于寻找序列不同角度之间的关系，最后再拼接在一起</p>
+<p>在论文中设置<span class="math inline">\(h=8\)</span>，<span
+class="math inline">\(d_k=d_v=d_{model}/h=64\)</span>总的计算量与single-head
+attention相比保持不变</p>
+<h3 id="position-encoding">5.Position Encoding</h3>
+<p>由于模型没有递归和卷积网络，因此需要引入位置编码来表征位置 <span
+class="math display">\[
+PE_{(pos,2i)}=sin(pos/10000^{2i/d_{model}})\\
+PE_{(pos,2i+1)}=cos(pos/10000^{2i/d_{model}})
+\]</span> 位置编码和embedding层维数相同，因此可以直接相加</p>
+<p>这里的Position Encoding是两个维度的函数可以将其看作是<span
+class="math inline">\(PE_{t,\omega_i}=sin(w_i\cdot t)\)</span>这里<span
+class="math inline">\(t\)</span>指代<span
+class="math inline">\(pos\)</span>，随着维度的增加，<span
+class="math inline">\(\omega_i\)</span>逐渐减少，因此在</p>
+<p>不同维度上周期在变换，在同一维度上，呈显出随位置变化的周期性</p>
+<p><img src="img\image-20210113100222041.png" alt="image-20210113100222041" style="zoom:67%;" /></p>
+<h3 id="padding-mask">6.Padding Mask</h3>
+<p>由于通常会将多个句子一同训练，对于句子之间长度不同此时需要用0进行补齐，这个过程称为padding</p>
+<p>但是这在进行softmax时会产生问题</p>
+<p><span class="math display">\[
+\sigma(z_i)=\frac{e^{z_i}}{\sum e^{z_j}}
+\]</span> 由于<span
+class="math inline">\(e^0=1\)</span>是有值的，意味着padding部分参与运算，因此需要mask操作让这些部分不参与，一般是给一个很大的负数偏置</p>
+<h3 id="layer-normalization">7.Layer Normalization</h3>
+<p>Layer Normalization
+的作用是把神经网络中隐藏层归一为标准正态分布，也就是 i.i.d
+独立同分布，以起到加快训练速度，加速收敛的作用 <span
+class="math display">\[
+\mu_j=\frac{1}{m}\sum_{i=1}^mx_{ij}\\
+\sigma_j^2=\frac{1}{m}\sum_{i=1}^m(x_{ij}-\mu_j)^2\\
+LayerNorm(x)=\frac{x_{ij}-\mu_j}{\sqrt{\sigma^2+\epsilon}}
+\]</span>
+<img src="img\MJnY847uNvWSaTk.png" alt="img" style="zoom:80%;" /></p>
 
     </div>
 
@@ -327,7 +398,7 @@
   </li>
   <li class="post-copyright-link">
       <strong>本文链接：</strong>
-      <a href="https://hamidun123.github.io/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/" title="PyTorch 单机多卡训练方法">https://hamidun123.github.io/2022/09/10/PyTorch 单机多卡训练方法/</a>
+      <a href="https://hamidun123.github.io/2022/09/10/Transformer/" title="Transformer">https://hamidun123.github.io/2022/09/10/Transformer/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -336,21 +407,20 @@
 </div>
 
           <div class="post-tags">
-              <a href="/tags/DDP/" rel="tag"># DDP</a>
-              <a href="/tags/Pytorch/" rel="tag"># Pytorch</a>
+              <a href="/tags/Transformer/" rel="tag"># Transformer</a>
           </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2022/09/10/Transformer/" rel="prev" title="Transformer">
-                  <i class="fa fa-chevron-left"></i> Transformer
+                <a href="/2022/09/10/%E8%AF%AD%E9%9F%B3%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86/" rel="prev" title="语音信号处理">
+                  <i class="fa fa-chevron-left"></i> 语音信号处理
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2022/09/10/BERT/" rel="next" title="BERT">
-                  BERT <i class="fa fa-chevron-right"></i>
+                <a href="/2022/09/10/PyTorch%20%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E8%AE%AD%E7%BB%83%E6%96%B9%E6%B3%95/" rel="next" title="PyTorch 单机多卡训练方法">
+                  PyTorch 单机多卡训练方法 <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
           </div>
@@ -437,13 +507,13 @@
 
   
 
-  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
 <script src="/js/third-party/math/mathjax.js"></script>
 
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.css" integrity="sha256-AJnUHL7dBv6PGaeyPQJcgQPDjt/Hn/PvYZde1iqfp8U=" crossorigin="anonymous">
 
-<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"ebfb196066743e9a176212ddef69b5ec"}</script>
+<script class="next-config" data-name="gitalk" type="application/json">{"enable":true,"github_id":"hamidun123","repo":"hamidun123.github.io","client_id":"843ef81eb1a845e082a7","client_secret":"3fcace7a38908d390ad486440c7e6e3f9bf19a6a","admin_user":"hamidun123","distraction_free_mode":true,"proxy":"https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token","language":"zh-CN","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js","integrity":"sha256-MVK9MGD/XJaGyIghSVrONSnoXoGh3IFxLw0zfvzpxR4="},"path_md5":"0febbd31ac3fe3e18ef721b1d6d97f55"}</script>
 <script src="/js/third-party/comments/gitalk.js"></script>
 
 </body>
